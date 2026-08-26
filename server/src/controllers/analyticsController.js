@@ -1,28 +1,15 @@
 const pool = require("../config/db");
 
-// Dashboard KPIs
-const getDashboardKPIs = async (req, res) => {
+// ==========================================
+// KPI ANALYTICS
+// ==========================================
+
+const getKPIs = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT
-        COUNT(DISTINCT o.OrderKey) AS TotalOrders,
-        COUNT(DISTINCT o.CustomerKey) AS TotalCustomers,
-        ROUND(SUM(oi.SalesAmount), 2) AS TotalRevenue,
-        ROUND(SUM(oi.ProfitAmount), 2) AS TotalProfit,
-        ROUND(
-          SUM(oi.ProfitAmount) /
-          NULLIF(SUM(oi.SalesAmount), 0) * 100,
-          2
-        ) AS ProfitMarginPercent,
-        ROUND(
-          SUM(oi.SalesAmount) /
-          NULLIF(COUNT(DISTINCT o.OrderKey), 0),
-          2
-        ) AS AverageOrderValue
-      FROM fact_orders o
-      JOIN fact_order_items oi
-        ON o.OrderKey = oi.OrderKey
-      WHERE o.OrderStatus NOT IN ('Cancelled', 'Returned')
+      SELECT *
+      FROM vw_sales_kpis
+      LIMIT 1
     `);
 
     res.json({
@@ -30,16 +17,19 @@ const getDashboardKPIs = async (req, res) => {
       data: rows[0],
     });
   } catch (error) {
-    console.error("Dashboard KPI error:", error.message);
+    console.error("KPI analytics error:", error.message);
 
     res.status(500).json({
       status: "error",
-      message: "Failed to fetch dashboard KPIs",
+      message: "Failed to fetch KPI analytics",
     });
   }
 };
 
-// Monthly Sales
+// ==========================================
+// MONTHLY SALES ANALYTICS
+// ==========================================
+
 const getMonthlySales = async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -63,27 +53,58 @@ const getMonthlySales = async (req, res) => {
   }
 };
 
-// Customer Analytics
-const getCustomerAnalytics = async (req, res) => {
+// ==========================================
+// TOP PRODUCTS ANALYTICS
+// ==========================================
+
+const getTopProducts = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT
-        CustomerKey,
-        CustomerID,
-        CustomerName,
-        Gender,
-        Age,
-        CustomerSegment,
-        AcquisitionChannel,
-        City,
-        Country,
-        TotalOrders,
-        TotalUnitsPurchased,
+        ProductKey,
+        ProductID,
+        ProductName,
+        Category,
+        Subcategory,
+        Brand,
+        UnitsSold,
         TotalRevenue,
+        TotalCost,
         TotalProfit,
         ProfitMarginPercent,
-        AverageOrderValue,
-        PurchaseBehavior
+        TotalOrders,
+        AverageSellingPrice,
+        UnitsReturned,
+        TotalRefundAmount,
+        ReturnRatePercent
+      FROM vw_product_analytics
+      ORDER BY TotalRevenue DESC
+      LIMIT 10
+    `);
+
+    res.json({
+      status: "success",
+      count: rows.length,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Top products error:", error.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch top products",
+    });
+  }
+};
+
+// ==========================================
+// CUSTOMER ANALYTICS
+// ==========================================
+
+const getCustomerAnalytics = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT *
       FROM vw_customer_analytics
       ORDER BY TotalRevenue DESC
     `);
@@ -103,84 +124,15 @@ const getCustomerAnalytics = async (req, res) => {
   }
 };
 
-// Product Analytics
-const getProductAnalytics = async (req, res) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT *
-      FROM vw_product_analytics
-      ORDER BY TotalProfit DESC
-    `);
+// ==========================================
+// MARKETING ANALYTICS
+// ==========================================
 
-    res.json({
-      status: "success",
-      count: rows.length,
-      data: rows,
-    });
-  } catch (error) {
-    console.error("Product analytics error:", error.message);
-
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch product analytics",
-    });
-  }
-};
-
-// Marketing Analytics
 const getMarketingAnalytics = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT
-        MarketingKey,
-        CampaignName,
-        ChannelName,
-        FullDate,
-        Year,
-        Month,
-        MonthName,
-        Impressions,
-        Clicks,
-        ROUND(
-          Clicks / NULLIF(Impressions, 0) * 100,
-          2
-        ) AS CTRPercent,
-        Leads,
-        ROUND(
-          Leads / NULLIF(Clicks, 0) * 100,
-          2
-        ) AS LeadConversionRatePercent,
-        Conversions,
-        ROUND(
-          Conversions / NULLIF(Leads, 0) * 100,
-          2
-        ) AS ConversionRatePercent,
-        Spend,
-        AttributedRevenue,
-        ROUND(
-          AttributedRevenue / NULLIF(Spend, 0),
-          2
-        ) AS ROAS,
-        ROUND(
-          Spend / NULLIF(Clicks, 0),
-          2
-        ) AS CostPerClick,
-        ROUND(
-          Spend / NULLIF(Leads, 0),
-          2
-        ) AS CostPerLead,
-        ROUND(
-          Spend / NULLIF(Conversions, 0),
-          2
-        ) AS CostPerConversion
-      FROM fact_marketing m
-      JOIN dim_campaign c
-        ON m.CampaignKey = c.CampaignKey
-      JOIN dim_channel ch
-        ON m.ChannelKey = ch.ChannelKey
-      JOIN dim_date d
-        ON m.DateKey = d.DateKey
-      ORDER BY AttributedRevenue DESC
+      SELECT *
+      FROM vw_marketing_analytics
     `);
 
     res.json({
@@ -198,13 +150,15 @@ const getMarketingAnalytics = async (req, res) => {
   }
 };
 
-// Returns Analytics
+// ==========================================
+// RETURNS ANALYTICS
+// ==========================================
+
 const getReturnsAnalytics = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT *
       FROM vw_returns_analytics
-      ORDER BY RefundAmount DESC
     `);
 
     res.json({
@@ -222,50 +176,15 @@ const getReturnsAnalytics = async (req, res) => {
   }
 };
 
-// Support Analytics
+// ==========================================
+// SUPPORT ANALYTICS
+// ==========================================
+
 const getSupportAnalytics = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT
-        IssueType,
-        Priority,
-        COUNT(*) AS TotalTickets,
-        ROUND(
-          AVG(ResolutionTimeHours),
-          2
-        ) AS AverageResolutionTimeHours,
-        ROUND(
-          AVG(SatisfactionScore),
-          2
-        ) AS AverageSatisfactionScore,
-        SUM(
-          CASE
-            WHEN Status = 'Resolved' THEN 1
-            ELSE 0
-          END
-        ) AS ResolvedTickets,
-        SUM(
-          CASE
-            WHEN Status <> 'Resolved' THEN 1
-            ELSE 0
-          END
-        ) AS UnresolvedTickets,
-        ROUND(
-          SUM(
-            CASE
-              WHEN Status = 'Resolved' THEN 1
-              ELSE 0
-            END
-          ) / COUNT(*) * 100,
-          2
-        ) AS ResolutionRatePercent
-      FROM fact_support
-      GROUP BY
-        IssueType,
-        Priority
-      ORDER BY
-        AverageSatisfactionScore ASC,
-        AverageResolutionTimeHours DESC
+      SELECT *
+      FROM vw_support_analytics
     `);
 
     res.json({
@@ -283,11 +202,15 @@ const getSupportAnalytics = async (req, res) => {
   }
 };
 
+// ==========================================
+// EXPORT CONTROLLERS
+// ==========================================
+
 module.exports = {
-  getDashboardKPIs,
+  getKPIs,
   getMonthlySales,
+  getTopProducts,
   getCustomerAnalytics,
-  getProductAnalytics,
   getMarketingAnalytics,
   getReturnsAnalytics,
   getSupportAnalytics,

@@ -1,207 +1,749 @@
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   ChevronDown,
   DollarSign,
+  Moon,
   Package,
   ShoppingCart,
+  Sun,
   Users,
 } from "lucide-react";
+
+import api from "../services/api";
+import type { KPIData } from "../types/analytics";
+
+import SalesChart from "../components/charts/SalesChart";
+import CustomerAnalyticsChart from "../components/charts/CustomerAnalyticsChart";
+import MarketingAnalyticsChart from "../components/charts/MarketingAnalyticsChart";
+import ReturnsAnalyticsChart from "../components/charts/ReturnsAnalyticsChart";
+import SupportAnalyticsChart from "../components/charts/SupportAnalyticsChart";
+import TopProductsChart from "../components/charts/TopProductsChart";
+
 import "../styles/dashboard.css";
 
 const Dashboard = () => {
+  const [kpis, setKpis] = useState<KPIData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
+
+  useEffect(() => {
+    const fetchKPIs = async () => {
+      try {
+        const response = await api.get("/analytics/kpis");
+
+        setKpis(response.data?.data ?? null);
+      } catch (err) {
+        console.error("Failed to fetch KPIs:", err);
+        setError("Unable to load dashboard metrics.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchKPIs();
+  }, []);
+
+  const totalOrders = Number(kpis?.TotalOrders ?? 0);
+  const totalCustomers = Number(kpis?.TotalCustomers ?? 0);
+  const totalRevenue = Number(kpis?.TotalRevenue ?? 0);
+  const totalProfit = Number(kpis?.TotalProfit ?? 0);
+
+  const averageOrderValue = Number(
+    kpis?.AverageOrderValue ?? 0
+  );
+
+  const profitMargin = Number(
+    kpis?.ProfitMarginPercent ?? 0
+  );
+
+  const formatCurrency = (value: number) =>
+    `LKR ${value.toLocaleString(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}`;
+
   return (
     <div className="dashboard">
+
+      {/* SIDEBAR */}
+
       <aside className="sidebar">
+
         <div className="brand">
           <div className="brand-icon">
-            <BarChart3 size={22} />
+            <BarChart3 size={21} />
           </div>
 
-          <div>
-            <h2>ShopSphere<span>360</span></h2>
+          <div className="brand-text">
+            <h2>
+              ShopSphere<span>360</span>
+            </h2>
+
             <p>Business Intelligence</p>
           </div>
         </div>
 
         <nav className="sidebar-nav">
-          <p className="nav-label">OVERVIEW</p>
 
-          <a className="nav-item active" href="/">
-            <BarChart3 size={18} />
-            Dashboard
+          <p className="nav-label">
+            OVERVIEW
+          </p>
+
+          <a
+            href="#top"
+            className="nav-item active"
+          >
+            <BarChart3 size={17} />
+            <span>Dashboard</span>
           </a>
 
-          <p className="nav-label">ANALYTICS</p>
+          <p className="nav-label">
+            ANALYTICS
+          </p>
 
-          <a className="nav-item" href="#">
-            <ShoppingCart size={18} />
-            Sales
+          <a href="#sales" className="nav-item">
+            <ShoppingCart size={17} />
+            <span>Sales</span>
           </a>
 
-          <a className="nav-item" href="#">
-            <Users size={18} />
-            Customers
+          <a href="#customers" className="nav-item">
+            <Users size={17} />
+            <span>Customers</span>
           </a>
 
-          <a className="nav-item" href="#">
-            <Package size={18} />
-            Products
+          <a href="#products" className="nav-item">
+            <Package size={17} />
+            <span>Products</span>
           </a>
 
-          <a className="nav-item" href="#">
-            <BarChart3 size={18} />
-            Marketing
+          <a href="#marketing" className="nav-item">
+            <BarChart3 size={17} />
+            <span>Marketing</span>
           </a>
 
-          <a className="nav-item" href="#">
-            <DollarSign size={18} />
-            Returns
+          <a href="#returns" className="nav-item">
+            <DollarSign size={17} />
+            <span>Returns</span>
           </a>
 
-          <a className="nav-item" href="#">
-            <Users size={18} />
-            Support
+          <a href="#support" className="nav-item">
+            <Users size={17} />
+            <span>Support</span>
           </a>
+
         </nav>
 
         <div className="sidebar-footer">
-          <div className="status-dot"></div>
+          <span className="status-dot" />
+
           <div>
             <strong>System Online</strong>
             <span>MySQL connected</span>
           </div>
         </div>
+
       </aside>
 
-      <main className="main-content">
+      {/* MAIN */}
+
+      <main
+        className="main-content"
+        id="top"
+      >
+
+        {/* TOPBAR */}
+
         <header className="topbar">
-          <div>
-            <p className="breadcrumb">OVERVIEW</p>
-            <h1>Business Dashboard</h1>
+
+          <div className="page-title">
+
+            <p className="breadcrumb">
+              OVERVIEW
+            </p>
+
+            <h1>
+              Business Dashboard
+            </h1>
+
           </div>
 
-          <button className="period-selector">
-            All Time
-            <ChevronDown size={16} />
-          </button>
+          <div className="topbar-actions">
+
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={() =>
+                setDarkMode((value) => !value)
+              }
+              aria-label="Toggle theme"
+            >
+              {darkMode ? (
+                <Sun size={17} />
+              ) : (
+                <Moon size={17} />
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="period-selector"
+            >
+              <span>All Time</span>
+              <ChevronDown size={15} />
+            </button>
+
+          </div>
+
         </header>
 
+        {/* WELCOME */}
+
         <section className="welcome">
+
           <div>
-            <h2>Welcome to ShopSphere360 👋</h2>
+            <span className="welcome-label">
+              BUSINESS OVERVIEW
+            </span>
+
+            <h2>
+              Welcome to ShopSphere360 👋
+            </h2>
+
             <p>
-              Monitor your business performance, customers, products and
-              marketing activity from one place.
+              Monitor sales, customers, products,
+              marketing activity and operational
+              performance from one dashboard.
             </p>
           </div>
+
         </section>
+
+        {error && (
+          <div className="dashboard-error">
+            {error}
+          </div>
+        )}
+
+        {/* KPI */}
 
         <section className="kpi-grid">
+
           <div className="kpi-card">
+
             <div className="kpi-icon blue">
-              <ShoppingCart size={21} />
+              <ShoppingCart size={20} />
             </div>
 
-            <div>
-              <p>Total Orders</p>
-              <h3>4,500</h3>
-              <span className="positive">+12.5%</span>
-              <small>vs previous period</small>
+            <div className="kpi-content">
+              <span>Total Orders</span>
+
+              <strong>
+                {loading
+                  ? "—"
+                  : totalOrders.toLocaleString()}
+              </strong>
+
+              <small>
+                Completed orders
+              </small>
             </div>
+
           </div>
 
           <div className="kpi-card">
-            <div className="kpi-icon purple">
-              <Users size={21} />
+
+            <div className="kpi-icon blue">
+              <Users size={20} />
             </div>
 
-            <div>
-              <p>Total Customers</p>
-              <h3>450</h3>
-              <span className="positive">+8.2%</span>
-              <small>vs previous period</small>
+            <div className="kpi-content">
+              <span>Total Customers</span>
+
+              <strong>
+                {loading
+                  ? "—"
+                  : totalCustomers.toLocaleString()}
+              </strong>
+
+              <small>
+                Customer base
+              </small>
             </div>
+
           </div>
 
           <div className="kpi-card">
-            <div className="kpi-icon green">
-              <DollarSign size={21} />
+
+            <div className="kpi-icon blue">
+              <DollarSign size={20} />
             </div>
 
-            <div>
-              <p>Total Revenue</p>
-              <h3>Rs. 183.35M</h3>
-              <span className="positive">+14.8%</span>
-              <small>vs previous period</small>
+            <div className="kpi-content">
+              <span>Total Revenue</span>
+
+              <strong>
+                {loading
+                  ? "—"
+                  : `LKR ${totalRevenue.toLocaleString()}`}
+              </strong>
+
+              <small>
+                All-time revenue
+              </small>
             </div>
+
           </div>
 
           <div className="kpi-card">
-            <div className="kpi-icon orange">
-              <BarChart3 size={21} />
+
+            <div className="kpi-icon blue">
+              <BarChart3 size={20} />
             </div>
 
-            <div>
-              <p>Total Profit</p>
-              <h3>Rs. 57.69M</h3>
-              <span className="positive">31.46%</span>
-              <small>profit margin</small>
+            <div className="kpi-content">
+              <span>Total Profit</span>
+
+              <strong>
+                {loading
+                  ? "—"
+                  : `LKR ${totalProfit.toLocaleString()}`}
+              </strong>
+
+              <small>
+                {loading
+                  ? "Calculating..."
+                  : `${profitMargin}% margin`}
+              </small>
             </div>
+
           </div>
+
         </section>
 
-        <section className="content-grid">
-          <div className="panel large-panel">
+        {/* SALES + KEY METRICS */}
+
+        <section
+          className="dashboard-grid primary-grid"
+          id="sales"
+        >
+
+          <div className="panel sales-panel">
+
             <div className="panel-header">
+
               <div>
-                <h3>Sales Performance</h3>
-                <p>Revenue and profit over time</p>
+                <span className="panel-kicker">
+                  SALES
+                </span>
+
+                <h2>
+                  Sales Performance
+                </h2>
+
+                <p>
+                  Revenue and profit over time
+                </p>
               </div>
 
-              <button className="panel-action">
+              <button
+                type="button"
+                className="panel-action"
+              >
                 Monthly
-                <ChevronDown size={15} />
+                <ChevronDown size={14} />
               </button>
+
             </div>
 
-            <div className="chart-placeholder">
-              <BarChart3 size={42} />
-              <p>Sales chart coming next</p>
+            <div className="panel-body sales-body">
+              <SalesChart />
             </div>
+
           </div>
 
-          <div className="panel">
+          <div className="panel metrics-panel">
+
             <div className="panel-header">
+
               <div>
-                <h3>Key Metrics</h3>
-                <p>Current business performance</p>
+                <span className="panel-kicker">
+                  OVERVIEW
+                </span>
+
+                <h2>
+                  Key Metrics
+                </h2>
+
+                <p>
+                  Current business performance
+                </p>
               </div>
+
             </div>
 
             <div className="metric-list">
+
+              <div className="metric-item">
+                <div>
+                  <span>
+                    Average Order Value
+                  </span>
+                  <small>
+                    Revenue per order
+                  </small>
+                </div>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : formatCurrency(
+                        averageOrderValue
+                      )}
+                </strong>
+              </div>
+
+              <div className="metric-item">
+                <div>
+                  <span>
+                    Profit Margin
+                  </span>
+                  <small>
+                    Overall profitability
+                  </small>
+                </div>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : `${profitMargin}%`}
+                </strong>
+              </div>
+
+              <div className="metric-item">
+                <div>
+                  <span>
+                    Customers
+                  </span>
+                  <small>
+                    Total customer base
+                  </small>
+                </div>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : totalCustomers.toLocaleString()}
+                </strong>
+              </div>
+
+              <div className="metric-item">
+                <div>
+                  <span>
+                    Orders
+                  </span>
+                  <small>
+                    Completed orders
+                  </small>
+                </div>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : totalOrders.toLocaleString()}
+                </strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* CUSTOMER + PRODUCTS */}
+
+        <section className="dashboard-grid two-grid">
+
+          <div
+            className="panel analytics-panel"
+            id="customers"
+          >
+
+            <div className="panel-header">
+
+              <div>
+                <span className="panel-kicker">
+                  CUSTOMERS
+                </span>
+
+                <h2>
+                  Customer Analytics
+                </h2>
+
+                <p>
+                  Customer behaviour and segmentation
+                </p>
+              </div>
+
+            </div>
+
+            <div className="panel-body">
+              <CustomerAnalyticsChart />
+            </div>
+
+          </div>
+
+          <div
+            className="panel analytics-panel"
+            id="products"
+          >
+
+            <div className="panel-header">
+
+              <div>
+                <span className="panel-kicker">
+                  PRODUCTS
+                </span>
+
+                <h2>
+                  Top Products
+                </h2>
+
+                <p>
+                  Products generating the highest revenue
+                </p>
+              </div>
+
+            </div>
+
+            <div className="panel-body">
+              <TopProductsChart />
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* MARKETING + RETURNS */}
+
+        <section className="dashboard-grid two-grid">
+
+          <div
+            className="panel analytics-panel"
+            id="marketing"
+          >
+
+            <div className="panel-header">
+
+              <div>
+                <span className="panel-kicker">
+                  MARKETING
+                </span>
+
+                <h2>
+                  Marketing Analytics
+                </h2>
+
+                <p>
+                  Channel efficiency and advertising performance
+                </p>
+              </div>
+
+            </div>
+
+            <div className="panel-body">
+              <MarketingAnalyticsChart />
+            </div>
+
+          </div>
+
+          <div
+            className="panel analytics-panel"
+            id="returns"
+          >
+
+            <div className="panel-header">
+
+              <div>
+                <span className="panel-kicker">
+                  RETURNS
+                </span>
+
+                <h2>
+                  Returns Analytics
+                </h2>
+
+                <p>
+                  Returned units and refund performance
+                </p>
+              </div>
+
+            </div>
+
+            <div className="panel-body">
+              <ReturnsAnalyticsChart />
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* SUPPORT */}
+
+        <section
+          className="panel support-panel"
+          id="support"
+        >
+
+          <div className="panel-header">
+
+            <div>
+              <span className="panel-kicker">
+                SUPPORT
+              </span>
+
+              <h2>
+                Support Analytics
+              </h2>
+
+              <p>
+                Customer support performance and response times
+              </p>
+            </div>
+
+          </div>
+
+          <div className="panel-body support-body">
+            <SupportAnalyticsChart />
+          </div>
+
+        </section>
+
+        {/* BUSINESS INSIGHTS */}
+
+        <section className="business-insights">
+
+          <div className="section-heading">
+
+            <div>
+              <span className="panel-kicker">
+                INSIGHTS
+              </span>
+
+              <h2>
+                Business Insights
+              </h2>
+
+              <p>
+                Important indicators from your business data
+              </p>
+            </div>
+
+          </div>
+
+          <div className="insights-grid">
+
+            <div className="insight-card">
+              <div className="insight-icon">
+                <DollarSign size={19} />
+              </div>
+
               <div>
                 <span>Average Order Value</span>
-                <strong>Rs. 40,743.90</strong>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : formatCurrency(
+                        averageOrderValue
+                      )}
+                </strong>
+
+                <p>
+                  Average revenue per order
+                </p>
+              </div>
+            </div>
+
+            <div className="insight-card">
+              <div className="insight-icon">
+                <Users size={19} />
+              </div>
+
+              <div>
+                <span>Customer Base</span>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : totalCustomers.toLocaleString()}
+                </strong>
+
+                <p>
+                  Customers recorded
+                </p>
+              </div>
+            </div>
+
+            <div className="insight-card">
+              <div className="insight-icon">
+                <BarChart3 size={19} />
               </div>
 
               <div>
                 <span>Profit Margin</span>
-                <strong>31.46%</strong>
-              </div>
 
-              <div>
-                <span>Customers</span>
-                <strong>450</strong>
-              </div>
+                <strong>
+                  {loading
+                    ? "—"
+                    : `${profitMargin}%`}
+                </strong>
 
-              <div>
-                <span>Orders</span>
-                <strong>4,500</strong>
+                <p>
+                  Overall profitability
+                </p>
               </div>
             </div>
+
+            <div className="insight-card">
+              <div className="insight-icon">
+                <ShoppingCart size={19} />
+              </div>
+
+              <div>
+                <span>Total Orders</span>
+
+                <strong>
+                  {loading
+                    ? "—"
+                    : totalOrders.toLocaleString()}
+                </strong>
+
+                <p>
+                  Completed orders
+                </p>
+              </div>
+            </div>
+
           </div>
+
         </section>
+
       </main>
+
     </div>
   );
 };

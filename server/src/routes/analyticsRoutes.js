@@ -1,10 +1,10 @@
 const express = require("express");
 
 const {
-  getDashboardKPIs,
+  getKPIs,
   getMonthlySales,
+  getTopProducts,
   getCustomerAnalytics,
-  getProductAnalytics,
   getMarketingAnalytics,
   getReturnsAnalytics,
   getSupportAnalytics,
@@ -12,12 +12,42 @@ const {
 
 const router = express.Router();
 
-router.get("/kpis", getDashboardKPIs);
+// ==========================================
+// SALES
+// ==========================================
+
+router.get("/kpis", getKPIs);
+
 router.get("/monthly-sales", getMonthlySales);
+
+// ==========================================
+// PRODUCTS
+// ==========================================
+
+router.get("/top-products", getTopProducts);
+
+// ==========================================
+// CUSTOMERS
+// ==========================================
+
 router.get("/customers", getCustomerAnalytics);
-router.get("/products", getProductAnalytics);
+
+// ==========================================
+// MARKETING
+// ==========================================
+
 router.get("/marketing", getMarketingAnalytics);
+
+// ==========================================
+// RETURNS
+// ==========================================
+
 router.get("/returns", getReturnsAnalytics);
+
+// ==========================================
+// SUPPORT
+// ==========================================
+
 router.get("/support", getSupportAnalytics);
 
 module.exports = router;
