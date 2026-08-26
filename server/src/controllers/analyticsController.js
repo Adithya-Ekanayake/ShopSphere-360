@@ -12,9 +12,17 @@ const getKPIs = async (req, res) => {
       LIMIT 1
     `);
 
+    const [customerRows] = await pool.query(`
+      SELECT COUNT(*) AS TotalCustomers
+      FROM dim_customer
+    `);
+
     res.json({
       status: "success",
-      data: rows[0],
+      data: {
+        ...rows[0],
+        TotalCustomers: Number(customerRows[0].TotalCustomers),
+      },
     });
   } catch (error) {
     console.error("KPI analytics error:", error.message);
@@ -33,7 +41,16 @@ const getKPIs = async (req, res) => {
 const getMonthlySales = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT *
+      SELECT 
+        Year,
+        Month,
+        MonthName,
+        TotalOrders,
+        UnitsSold,
+        Revenue AS TotalRevenue,
+        Profit AS TotalProfit,
+        ProfitMarginPercent,
+        AverageOrderValue
       FROM vw_monthly_sales
       ORDER BY Year, Month
     `);

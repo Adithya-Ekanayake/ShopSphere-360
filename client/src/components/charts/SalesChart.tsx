@@ -17,8 +17,8 @@ interface MonthlySales {
   MonthName: string;
   TotalOrders: number;
   UnitsSold: string;
-  Revenue: string;
-  Profit: string;
+  TotalRevenue: string;
+  TotalProfit: string;
   ProfitMarginPercent: string;
   AverageOrderValue: string;
 }
@@ -178,9 +178,9 @@ const SalesChart = () => {
 
               month: Number(item.Month),
 
-              revenue: Number(item.Revenue) || 0,
+              revenue: Number(item.TotalRevenue) || 0,
 
-              profit: Number(item.Profit) || 0,
+              profit: Number(item.TotalProfit) || 0,
             }))
             .sort((a, b) => {
               if (a.year !== b.year) {
