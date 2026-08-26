@@ -14,6 +14,7 @@ import Transactions from "./pages/Transactions";
 import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
 
+
 function App() {
   return (
     <BrowserRouter>
