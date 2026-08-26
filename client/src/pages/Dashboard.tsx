@@ -99,50 +99,51 @@ const Dashboard = () => {
 
         <nav className="sidebar-nav">
 
-          <p className="nav-label">
-            OVERVIEW
-          </p>
-
-          <a
-            href="#top"
-            className="nav-item active"
-          >
-            <BarChart3 size={17} />
-            <span>Dashboard</span>
-          </a>
+<a
+  href="/"
+  className="nav-item"
+>
+  <BarChart3 size={17} />
+  <span>Dashboard</span>
+</a>
 
           <p className="nav-label">
             ANALYTICS
           </p>
 
-          <a href="#sales" className="nav-item">
+          <a href="/sales" className="nav-item">
             <ShoppingCart size={17} />
             <span>Sales</span>
           </a>
 
-          <a href="#customers" className="nav-item">
+          <a href="/customers" className="nav-item">
             <Users size={17} />
             <span>Customers</span>
           </a>
 
-          <a href="#products" className="nav-item">
+          <a href="/products" className="nav-item">
             <Package size={17} />
             <span>Products</span>
           </a>
 
-          <a href="#marketing" className="nav-item">
+          <a href="/sales/orders" className="nav-item">
+            <ShoppingCart size={17} />
+            <span>Orders</span>
+          </a>
+
+          <a href="/sales/transactions" className="nav-item">
+            <Package size={17} />
+            <span>Transactions</span>
+          </a>
+
+          <a href="/analytics" className="nav-item">
             <BarChart3 size={17} />
-            <span>Marketing</span>
+            <span>Analytics</span>
           </a>
 
-          <a href="#returns" className="nav-item">
-            <DollarSign size={17} />
-            <span>Returns</span>
-          </a>
-
-          <a href="#support" className="nav-item">
-            <Users size={17} />
-            <span>Support</span>
+          <a href="/reports" className="nav-item">
+            <BarChart3 size={17} />
+            <span>Reports</span>
           </a>
 
         </nav>

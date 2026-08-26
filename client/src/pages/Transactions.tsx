@@ -14,9 +14,37 @@ interface Transaction {
 }
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  /* =========================================================
+     DARK MODE
+     ========================================================= */
+
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
+
+  /* =========================================================
+     STATE
+     ========================================================= */
+
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    []
+  );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* =========================================================
+     LOAD TRANSACTIONS
+     ========================================================= */
 
   useEffect(() => {
     const loadTransactions = async () => {
@@ -43,7 +71,13 @@ const Transactions = () => {
     loadTransactions();
   }, []);
 
-  const formatCurrency = (value: number | string) => {
+  /* =========================================================
+     FORMAT CURRENCY
+     ========================================================= */
+
+  const formatCurrency = (
+    value: number | string
+  ) => {
     return `LKR ${Number(value || 0).toLocaleString(
       "en-LK",
       {
@@ -53,18 +87,49 @@ const Transactions = () => {
     )}`;
   };
 
+  /* =========================================================
+     FORMAT DATE
+     ========================================================= */
+
+  const formatDate = (date: string) => {
+    if (!date) {
+      return "—";
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return date;
+    }
+
+    return parsedDate.toLocaleDateString("en-LK", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  /* =========================================================
+     RENDER
+     ========================================================= */
+
   return (
     <div className="dashboard">
 
-      {/* PAGE HEADER */}
+      {/* =====================================================
+          PAGE HEADER
+          ===================================================== */}
 
       <div className="admin-header">
+
         <div>
           <p className="panel-kicker">
             TRANSACTIONS
           </p>
 
-          <h1>Transactions</h1>
+          <h1>
+            Transactions
+          </h1>
 
           <p
             style={{
@@ -76,9 +141,12 @@ const Transactions = () => {
             View and monitor payment transactions.
           </p>
         </div>
+
       </div>
 
-      {/* ERROR */}
+      {/* =====================================================
+          ERROR
+          ===================================================== */}
 
       {error && (
         <div className="admin-error">
@@ -86,61 +154,110 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* TRANSACTIONS TABLE */}
+      {/* =====================================================
+          TRANSACTIONS TABLE
+          ===================================================== */}
 
-      <section className="panel">
+      <section
+        className="panel"
+        style={{
+          marginTop: "20px",
+        }}
+      >
 
         <div className="panel-header">
+
           <div>
             <span className="panel-kicker">
               PAYMENT RECORDS
             </span>
 
-            <h2>All Transactions</h2>
+            <h2>
+              All Transactions
+            </h2>
 
             <p>
-              Recent payment transaction records
+              Payment transaction records
             </p>
           </div>
+
         </div>
 
         <div className="panel-body">
 
+          {/* =================================================
+              LOADING
+              ================================================= */}
+
           {loading ? (
-            <p
-              style={{
-                color: "var(--text-secondary)",
-              }}
-            >
-              Loading transactions...
-            </p>
+
+            <div className="chart-status">
+              <p>
+                Loading transactions...
+              </p>
+            </div>
+
           ) : transactions.length === 0 ? (
-            <p
-              style={{
-                color: "var(--text-secondary)",
-              }}
-            >
-              No transactions found.
-            </p>
+
+            /* ===============================================
+               EMPTY STATE
+               =============================================== */
+
+            <div className="chart-status">
+              <p>
+                No transactions found.
+              </p>
+            </div>
+
           ) : (
+
+            /* ===============================================
+               TABLE
+               =============================================== */
+
             <div className="admin-table-wrapper">
 
               <table className="admin-table">
 
                 <thead>
+
                   <tr>
-                    <th>Payment ID</th>
-                    <th>Order ID</th>
-                    <th>Payment Method</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Transaction Fee</th>
+                    <th>
+                      Payment ID
+                    </th>
+
+                    <th>
+                      Order ID
+                    </th>
+
+                    <th>
+                      Transaction Date
+                    </th>
+
+                    <th>
+                      Payment Method
+                    </th>
+
+                    <th>
+                      Amount
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th>
+                      Transaction Fee
+                    </th>
                   </tr>
+
                 </thead>
 
                 <tbody>
+
                   {transactions.map(
                     (transaction) => (
+
                       <tr
                         key={
                           transaction.PaymentKey
@@ -153,6 +270,12 @@ const Transactions = () => {
 
                         <td>
                           {transaction.OrderID}
+                        </td>
+
+                        <td>
+                          {formatDate(
+                            transaction.TransactionDate
+                          )}
                         </td>
 
                         <td>
@@ -176,13 +299,16 @@ const Transactions = () => {
                         </td>
 
                       </tr>
+
                     )
                   )}
+
                 </tbody>
 
               </table>
 
             </div>
+
           )}
 
         </div>

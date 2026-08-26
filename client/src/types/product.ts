@@ -3,11 +3,15 @@ export interface Product {
   ProductID: string;
   ProductName: string;
   Category: string;
-  Subcategory: string | null;
-  Brand: string | null;
-  Supplier: string | null;
-  UnitCost: number;
-  UnitPrice: number;
+  Subcategory?: string | null;
+  Brand?: string | null;
+  Supplier?: string | null;
+  UnitCost: number | string;
+  UnitPrice: number | string;
+  UnitsSold?: number | string;
+  TotalRevenue?: number | string;
+  TotalProfit?: number | string;
+  MarginPercent?: number | string;
 }
 
 export interface ProductInput {
@@ -17,6 +21,6 @@ export interface ProductInput {
   Subcategory?: string;
   Brand?: string;
   Supplier?: string;
-  UnitCost: number;
-  UnitPrice: number;
+  UnitCost: number | string;
+  UnitPrice: number | string;
 }

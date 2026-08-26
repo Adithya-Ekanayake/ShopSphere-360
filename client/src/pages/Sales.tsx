@@ -20,6 +20,17 @@ import "../styles/dashboard.css";
 import "../styles/sales.css";
 
 const Sales = () => {
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
   const [kpis, setKpis] = useState<SalesKPI | null>(null);
   const [monthlySales, setMonthlySales] = useState<MonthlySales[]>([]);
   const [channelSales, setChannelSales] = useState<ChannelSales[]>([]);

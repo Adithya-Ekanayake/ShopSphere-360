@@ -18,7 +18,29 @@ import "../styles/dashboard.css";
 import "../styles/admin.css";
 
 const SalesOverview = () => {
+  /* =========================================================
+     DARK MODE
+     ========================================================= */
+
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
+
+  /* =========================================================
+     STATE
+     ========================================================= */
+
   const [kpis, setKpis] = useState<KPIData | null>(null);
+
   const [monthlySales, setMonthlySales] = useState<
     MonthlySalesData[]
   >([]);
@@ -104,9 +126,11 @@ const SalesOverview = () => {
     if (value >= 1_000_000) {
       return `LKR ${(value / 1_000_000).toFixed(1)}M`;
     }
+
     if (value >= 1_000) {
       return `LKR ${(value / 1_000).toFixed(1)}K`;
     }
+
     return `LKR ${value.toFixed(0)}`;
   };
 
@@ -378,21 +402,17 @@ const SalesOverview = () => {
             {loading ? (
 
               <div className="chart-status">
-
                 <p>
                   Loading sales data...
                 </p>
-
               </div>
 
             ) : monthlySales.length === 0 ? (
 
               <div className="chart-status">
-
                 <p>
                   No monthly sales data available.
                 </p>
-
               </div>
 
             ) : (
@@ -416,13 +436,10 @@ const SalesOverview = () => {
                       month.TotalRevenue ?? 0
                     );
 
-                    const height =
-                      Math.max(
-                        (revenue /
-                          maxRevenue) *
-                          230,
-                        8
-                      );
+                    const height = Math.max(
+                      (revenue / maxRevenue) * 230,
+                      8
+                    );
 
                     return (
 
@@ -446,10 +463,11 @@ const SalesOverview = () => {
                             fontSize: "10px",
                             color:
                               "var(--text-secondary)",
-                            whiteSpace:
-                              "nowrap",
-                            transform: "rotate(-30deg)",
-                            transformOrigin: "bottom left",
+                            whiteSpace: "nowrap",
+                            transform:
+                              "rotate(-30deg)",
+                            transformOrigin:
+                              "bottom left",
                             marginBottom: "5px",
                           }}
                         >
@@ -479,8 +497,7 @@ const SalesOverview = () => {
                             fontSize: "11px",
                             color:
                               "var(--text-secondary)",
-                            whiteSpace:
-                              "nowrap",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {month.MonthName ??
@@ -702,21 +719,17 @@ const SalesOverview = () => {
           {loading ? (
 
             <div className="chart-status">
-
               <p>
                 Loading...
               </p>
-
             </div>
 
           ) : monthlySales.length === 0 ? (
 
             <div className="chart-status">
-
               <p>
                 No sales records available.
               </p>
-
             </div>
 
           ) : (
@@ -762,29 +775,21 @@ const SalesOverview = () => {
                   {monthlySales.map(
                     (month, index) => {
 
-                      const revenue =
-                        Number(
-                          month.TotalRevenue ??
-                            0
-                        );
+                      const revenue = Number(
+                        month.TotalRevenue ?? 0
+                      );
 
-                      const profit =
-                        Number(
-                          month.TotalProfit ??
-                            0
-                        );
+                      const profit = Number(
+                        month.TotalProfit ?? 0
+                      );
 
-                      const orders =
-                        Number(
-                          month.TotalOrders ??
-                            0
-                        );
+                      const orders = Number(
+                        month.TotalOrders ?? 0
+                      );
 
                       const margin =
                         revenue > 0
-                          ? (profit /
-                              revenue) *
-                            100
+                          ? (profit / revenue) * 100
                           : 0;
 
                       return (
@@ -821,10 +826,7 @@ const SalesOverview = () => {
                           </td>
 
                           <td>
-                            {margin.toFixed(
-                              1
-                            )}
-                            %
+                            {margin.toFixed(1)}%
                           </td>
 
                         </tr>

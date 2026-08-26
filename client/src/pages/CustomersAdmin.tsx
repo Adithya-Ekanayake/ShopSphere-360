@@ -6,9 +6,12 @@ import {
   X,
   Search,
   Users,
+  UserCheck,
+  Crown,
   Globe,
-  UserPlus,
-  Layers,
+  Loader2,
+  AlertCircle,
+  RotateCw,
 } from "lucide-react";
 
 import customerService from "../services/customerService";
@@ -20,20 +23,45 @@ import type {
 import "../styles/dashboard.css";
 import "../styles/admin.css";
 
-const emptyForm: CustomerInput = {
-  CustomerID: "",
-  FirstName: "",
-  LastName: "",
-  Gender: "",
-  Age: "",
-  SignupDate: "",
-  CustomerSegment: "",
-  AcquisitionChannel: "",
-  City: "",
-  Country: "",
-};
-
 const CustomersAdmin = () => {
+  // =========================================================
+  // DARK MODE
+  // =========================================================
+
+  const [darkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
+
+  // =========================================================
+  // EMPTY FORM
+  // =========================================================
+
+  const emptyForm: CustomerInput = {
+    CustomerID: "",
+    FirstName: "",
+    LastName: "",
+    Gender: "",
+    Age: "",
+    SignupDate: "",
+    CustomerSegment: "",
+    AcquisitionChannel: "",
+    City: "",
+    Country: "",
+  };
+
+  // =========================================================
+  // STATE
+  // =========================================================
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,160 +72,180 @@ const CustomersAdmin = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editingKey, setEditingKey] = useState<number | null>(null);
-  const [form, setForm] =
-    useState<CustomerInput>(emptyForm);
-
+  const [form, setForm] = useState<CustomerInput>(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  // ==========================================
-  // LOAD CUSTOMERS
-  // ==========================================
+  // =========================================================
+  // FETCH CUSTOMERS
+  // =========================================================
 
-  const loadCustomers = async () => {
+  const fetchCustomers = async () => {
     try {
       setLoading(true);
+      setError("");
 
       const data = await customerService.getAll();
-
       setCustomers(data);
-      setError("");
     } catch (err) {
-      console.error("Failed to load customers:", err);
-
-      setError("Unable to load customers.");
+      console.error("Failed to fetch customers:", err);
+      setError("Failed to load customers. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadCustomers();
+    fetchCustomers();
   }, []);
 
-  // ==========================================
-  // FILTER OPTIONS
-  // ==========================================
+  // =========================================================
+  // FILTER CUSTOMERS
+  // =========================================================
+
+  const filteredCustomers = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
+
+    return customers.filter((customer) => {
+      const matchesSearch =
+        !searchTerm ||
+        String(customer.CustomerID ?? "")
+          .toLowerCase()
+          .includes(searchTerm) ||
+        String(customer.FirstName ?? "")
+          .toLowerCase()
+          .includes(searchTerm) ||
+        String(customer.LastName ?? "")
+          .toLowerCase()
+          .includes(searchTerm) ||
+        `${customer.FirstName ?? ""} ${customer.LastName ?? ""}`
+          .toLowerCase()
+          .includes(searchTerm) ||
+        String(customer.City ?? "")
+          .toLowerCase()
+          .includes(searchTerm) ||
+        String(customer.Country ?? "")
+          .toLowerCase()
+          .includes(searchTerm);
+
+      const matchesSegment =
+        !segmentFilter || customer.CustomerSegment === segmentFilter;
+
+      const matchesCountry =
+        !countryFilter || customer.Country === countryFilter;
+
+      return matchesSearch && matchesSegment && matchesCountry;
+    });
+  }, [customers, search, segmentFilter, countryFilter]);
+
+  // =========================================================
+  // UNIQUE SEGMENTS & COUNTRIES
+  // =========================================================
 
   const segments = useMemo(() => {
-    return Array.from(
-      new Set(
-        customers
-          .map((customer) => customer.CustomerSegment)
-          .filter(Boolean)
-      )
-    ).sort();
+    const list: string[] = [];
+    customers.forEach((c) => {
+      if (c.CustomerSegment && !list.includes(c.CustomerSegment)) {
+        list.push(c.CustomerSegment);
+      }
+    });
+    return list;
   }, [customers]);
 
   const countries = useMemo(() => {
-    return Array.from(
-      new Set(
-        customers
-          .map((customer) => customer.Country)
-          .filter(Boolean)
-      )
-    ).sort();
+    const list: string[] = [];
+    customers.forEach((c) => {
+      if (c.Country && !list.includes(c.Country)) {
+        list.push(c.Country);
+      }
+    });
+    return list;
   }, [customers]);
 
-  // ==========================================
-  // FILTERED CUSTOMERS
-  // ==========================================
+  // =========================================================
+  // KPI STATS
+  // =========================================================
 
-  const filteredCustomers = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const premiumCount = useMemo(
+    () =>
+      customers.filter((c) => c.CustomerSegment === "Premium").length,
+    [customers]
+  );
 
-    return customers.filter((customer) => {
-      const fullName =
-        `${customer.FirstName} ${customer.LastName}`.toLowerCase();
+  const regularCount = useMemo(
+    () =>
+      customers.filter((c) => c.CustomerSegment === "Regular").length,
+    [customers]
+  );
 
-      const matchesSearch =
-        !query ||
-        customer.CustomerID.toLowerCase().includes(query) ||
-        fullName.includes(query) ||
-        (customer.City ?? "")
-          .toLowerCase()
-          .includes(query) ||
-        (customer.Country ?? "")
-          .toLowerCase()
-          .includes(query);
+  const uniqueCountriesCount = useMemo(
+    () => countries.length,
+    [countries]
+  );
 
-      const matchesSegment =
-        !segmentFilter ||
-        customer.CustomerSegment === segmentFilter;
+  // =========================================================
+  // FORM SUBMIT
+  // =========================================================
 
-      const matchesCountry =
-        !countryFilter ||
-        customer.Country === countryFilter;
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-      return (
-        matchesSearch &&
-        matchesSegment &&
-        matchesCountry
-      );
-    });
-  }, [
-    customers,
-    search,
-    segmentFilter,
-    countryFilter,
-  ]);
+    if (saving) return;
 
-  // ==========================================
-  // SUMMARY DATA
-  // ==========================================
+    try {
+      setSaving(true);
+      setError("");
 
-  const totalCustomers = customers.length;
+      if (editingKey !== null) {
+        await customerService.update(editingKey, {
+          FirstName: form.FirstName,
+          LastName: form.LastName,
+          Gender: form.Gender,
+          Age: form.Age ? Number(form.Age) : "",
+          SignupDate: form.SignupDate,
+          CustomerSegment: form.CustomerSegment,
+          AcquisitionChannel: form.AcquisitionChannel,
+          City: form.City,
+          Country: form.Country,
+        });
+      } else {
+        await customerService.create({
+          ...form,
+          Age: form.Age ? Number(form.Age) : "",
+        });
+      }
 
-  const totalSegments = segments.length;
+      const data = await customerService.getAll();
+      setCustomers(data);
 
-  const totalCountries = countries.length;
-
-  const newCustomers = customers.filter((customer) => {
-    if (!customer.SignupDate) return false;
-
-    const signupDate = new Date(customer.SignupDate);
-
-    const now = new Date();
-
-    const monthsAgo = new Date();
-
-    monthsAgo.setMonth(now.getMonth() - 1);
-
-    return signupDate >= monthsAgo;
-  }).length;
-
-  // ==========================================
-  // FORM
-  // ==========================================
-
-  const openCreateForm = () => {
-    setEditingKey(null);
-
-    setForm({
-      ...emptyForm,
-      SignupDate: new Date()
-        .toISOString()
-        .split("T")[0],
-    });
-
-    setShowForm(true);
+      setShowForm(false);
+      setEditingKey(null);
+      setForm({ ...emptyForm });
+    } catch (err) {
+      console.error("Failed to save customer:", err);
+      setError("Failed to save customer. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const openEditForm = (customer: Customer) => {
+  // =========================================================
+  // EDIT CUSTOMER
+  // =========================================================
+
+  const handleEdit = (customer: Customer) => {
     setEditingKey(customer.CustomerKey);
 
     setForm({
-      CustomerID: customer.CustomerID,
-      FirstName: customer.FirstName,
-      LastName: customer.LastName,
+      CustomerID: customer.CustomerID ?? "",
+      FirstName: customer.FirstName ?? "",
+      LastName: customer.LastName ?? "",
       Gender: customer.Gender ?? "",
-      Age: customer.Age ?? "",
+      Age: customer.Age != null ? String(customer.Age) : "",
       SignupDate: customer.SignupDate
-        ? customer.SignupDate.substring(0, 10)
+        ? customer.SignupDate.slice(0, 10)
         : "",
-      CustomerSegment:
-        customer.CustomerSegment ?? "",
-      AcquisitionChannel:
-        customer.AcquisitionChannel ?? "",
+      CustomerSegment: customer.CustomerSegment ?? "",
+      AcquisitionChannel: customer.AcquisitionChannel ?? "",
       City: customer.City ?? "",
       Country: customer.Country ?? "",
     });
@@ -205,706 +253,625 @@ const CustomersAdmin = () => {
     setShowForm(true);
   };
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingKey(null);
-    setForm(emptyForm);
-  };
+  // =========================================================
+  // DELETE CUSTOMER
+  // =========================================================
 
-  const handleChange = (
-    field: keyof CustomerInput,
-    value: string
-  ) => {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  };
-
-  // ==========================================
-  // SAVE
-  // ==========================================
-
-  const handleSubmit = async (
-    event: React.FormEvent
-  ) => {
-    event.preventDefault();
-
-    try {
-      setSaving(true);
-
-      if (editingKey === null) {
-        await customerService.create(form);
-      } else {
-        const { CustomerID, ...updateData } = form;
-
-        await customerService.update(
-          editingKey,
-          updateData
-        );
-      }
-
-      closeForm();
-
-      await loadCustomers();
-    } catch (err) {
-      console.error(
-        "Failed to save customer:",
-        err
-      );
-
-      alert(
-        "Failed to save customer. Check the console for details."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ==========================================
-  // DELETE
-  // ==========================================
-
-  const handleDelete = async (
-    customerKey: number
-  ) => {
+  const handleDelete = async (customerKey: number) => {
     const confirmed = window.confirm(
-      "Delete this customer? This cannot be undone."
+      "Are you sure you want to delete this customer?"
     );
 
     if (!confirmed) return;
 
     try {
+      setError("");
+
       await customerService.remove(customerKey);
 
-      await loadCustomers();
+      setCustomers((previousCustomers) =>
+        previousCustomers.filter(
+          (customer) => customer.CustomerKey !== customerKey
+        )
+      );
     } catch (err) {
-      console.error(
-        "Failed to delete customer:",
-        err
-      );
-
-      alert(
-        "Failed to delete customer. They may have related orders or records."
-      );
+      console.error("Failed to delete customer:", err);
+      setError("Failed to delete customer. Please try again.");
     }
   };
 
+  // =========================================================
+  // CANCEL FORM
+  // =========================================================
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingKey(null);
+    setForm({ ...emptyForm });
+  };
+
+  // =========================================================
+  // INPUT CHANGE
+  // =========================================================
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      [name]: value,
+    }));
+  };
+
+  // =========================================================
+  // OPEN ADD FORM
+  // =========================================================
+
+  const handleAddCustomer = () => {
+    setEditingKey(null);
+    setForm({ ...emptyForm });
+    setShowForm(true);
+    setError("");
+  };
+
+  // Helper for segment class
+  const getSegmentClass = (segment?: string | null) => {
+    const seg = (segment ?? "").toLowerCase();
+    if (seg === "premium") return "customer-segment premium";
+    if (seg === "regular") return "customer-segment regular";
+    if (seg === "occasional") return "customer-segment occasional";
+    if (seg === "new") return "customer-segment new";
+    return "customer-segment";
+  };
+
+  // Helper for initials
+  const getInitials = (first?: string, last?: string) => {
+    const f = (first ?? "").trim().charAt(0).toUpperCase();
+    const l = (last ?? "").trim().charAt(0).toUpperCase();
+    return f || l ? `${f}${l}` : "CU";
+  };
+
+  // Helper for date format
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("en-LK", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // =========================================================
+  // LOADING STATE
+  // =========================================================
+
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div className="admin-loading">
+          <Loader2 className="admin-spinner" />
+          <p>Loading customers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // PAGE RENDER
+  // =========================================================
+
   return (
     <div className="dashboard">
-
-      {/* ========================================
-          PAGE HEADER
-      ======================================== */}
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
 
       <div className="admin-header">
-
         <div>
-          <p className="panel-kicker">
-            CUSTOMER MANAGEMENT
-          </p>
-
-          <h1>Customers</h1>
-
+          <p className="panel-kicker">CUSTOMERS</p>
+          <h1>Customers Administration</h1>
           <p className="admin-page-description">
-            Manage your customer base and customer information.
+            Manage customer profiles, segmentation, and contact details.
           </p>
         </div>
 
         <button
           type="button"
+          onClick={handleAddCustomer}
           className="admin-btn admin-btn-primary"
-          onClick={openCreateForm}
         >
           <Plus size={16} />
-          Add Customer
+          <span>Add Customer</span>
         </button>
-
       </div>
 
-      {/* ========================================
-          ERROR
-      ======================================== */}
+      {/* =====================================================
+          KPI SUMMARY CARDS
+          ===================================================== */}
 
-      {error && (
-        <div className="admin-error">
-          {error}
-        </div>
-      )}
-
-      {/* ========================================
-          SUMMARY CARDS
-      ======================================== */}
-
-      <section className="admin-summary-grid">
-
-        <div className="admin-summary-card">
-
-          <div className="admin-summary-icon">
+      <section className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
             <Users size={20} />
           </div>
-
-          <div>
+          <div className="kpi-content">
             <span>Total Customers</span>
-
-            <strong>
-              {loading
-                ? "—"
-                : totalCustomers.toLocaleString()}
-            </strong>
-
-            <small>
-              Registered customers
-            </small>
+            <strong>{customers.length.toLocaleString()}</strong>
+            <small>Active in database</small>
           </div>
-
         </div>
 
-        <div className="admin-summary-card">
-
-          <div className="admin-summary-icon">
-            <Layers size={20} />
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
+            <Crown size={20} />
           </div>
-
-          <div>
-            <span>Customer Segments</span>
-
-            <strong>
-              {loading
-                ? "—"
-                : totalSegments}
-            </strong>
-
-            <small>
-              Customer groups
-            </small>
+          <div className="kpi-content">
+            <span>Premium Segment</span>
+            <strong>{premiumCount.toLocaleString()}</strong>
+            <small>High value clients</small>
           </div>
-
         </div>
 
-        <div className="admin-summary-card">
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
+            <UserCheck size={20} />
+          </div>
+          <div className="kpi-content">
+            <span>Regular Segment</span>
+            <strong>{regularCount.toLocaleString()}</strong>
+            <small>Standard tier</small>
+          </div>
+        </div>
 
-          <div className="admin-summary-icon">
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
             <Globe size={20} />
           </div>
-
-          <div>
-            <span>Countries</span>
-
-            <strong>
-              {loading
-                ? "—"
-                : totalCountries}
-            </strong>
-
-            <small>
-              Customer locations
-            </small>
+          <div className="kpi-content">
+            <span>Global Reach</span>
+            <strong>{uniqueCountriesCount.toLocaleString()}</strong>
+            <small>Active countries</small>
           </div>
-
         </div>
-
-        <div className="admin-summary-card">
-
-          <div className="admin-summary-icon">
-            <UserPlus size={20} />
-          </div>
-
-          <div>
-            <span>New Customers</span>
-
-            <strong>
-              {loading
-                ? "—"
-                : newCustomers}
-            </strong>
-
-            <small>
-              Signed up recently
-            </small>
-          </div>
-
-        </div>
-
       </section>
 
-      {/* ========================================
-          SEARCH + FILTERS
-      ======================================== */}
+      {/* =====================================================
+          ERROR
+          ===================================================== */}
 
-      <div className="admin-toolbar">
-
-        <div className="admin-search">
-
-          <Search size={17} />
-
-          <input
-            type="text"
-            placeholder="Search customers..."
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-          />
-
-        </div>
-
-        <select
-          value={segmentFilter}
-          onChange={(event) =>
-            setSegmentFilter(event.target.value)
-          }
-          className="admin-filter"
-        >
-          <option value="">
-            All Segments
-          </option>
-
-          {segments.map((segment) => (
-            <option
-              key={segment}
-              value={segment}
-            >
-              {segment}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={countryFilter}
-          onChange={(event) =>
-            setCountryFilter(event.target.value)
-          }
-          className="admin-filter"
-        >
-          <option value="">
-            All Countries
-          </option>
-
-          {countries.map((country) => (
-            <option
-              key={country}
-              value={country}
-            >
-              {country}
-            </option>
-          ))}
-        </select>
-
-      </div>
-
-      {/* ========================================
-          CUSTOMER TABLE
-      ======================================== */}
-
-      {!loading && !error && (
-        <div className="admin-table-wrapper">
-
-          <table className="admin-table">
-
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Gender</th>
-                <th>Age</th>
-                <th>Segment</th>
-                <th>Channel</th>
-                <th>City</th>
-                <th>Country</th>
-                <th>Signup Date</th>
-                <th></th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              {filteredCustomers.length === 0 ? (
-
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="admin-empty"
-                  >
-                    No customers found.
-                  </td>
-                </tr>
-
-              ) : (
-
-                filteredCustomers.map((customer) => (
-
-                  <tr
-                    key={customer.CustomerKey}
-                  >
-
-                    <td>
-                      <div className="customer-cell">
-
-                        <div className="customer-avatar">
-                          {customer.FirstName
-                            ?.charAt(0)
-                            .toUpperCase()}
-                        </div>
-
-                        <div>
-                          <strong>
-                            {customer.FirstName}{" "}
-                            {customer.LastName}
-                          </strong>
-
-                          <small>
-                            {customer.CustomerID}
-                          </small>
-                        </div>
-
-                      </div>
-                    </td>
-
-                    <td>
-                      {customer.Gender || "-"}
-                    </td>
-
-                    <td>
-                      {customer.Age ?? "-"}
-                    </td>
-
-                    <td>
-                      <span className="customer-segment">
-                        {customer.CustomerSegment ||
-                          "-"}
-                      </span>
-                    </td>
-
-                    <td>
-                      {customer.AcquisitionChannel ||
-                        "-"}
-                    </td>
-
-                    <td>
-                      {customer.City || "-"}
-                    </td>
-
-                    <td>
-                      {customer.Country || "-"}
-                    </td>
-
-                    <td>
-                      {customer.SignupDate
-                        ? new Date(
-                            customer.SignupDate
-                          ).toLocaleDateString()
-                        : "-"}
-                    </td>
-
-                    <td>
-                      <div className="admin-actions">
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openEditForm(customer)
-                          }
-                          title="Edit"
-                        >
-                          <Pencil size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDelete(
-                              customer.CustomerKey
-                            )
-                          }
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-
-                      </div>
-                    </td>
-
-                  </tr>
-
-                ))
-
-              )}
-
-            </tbody>
-
-          </table>
-
+      {error && (
+        <div className="admin-error-box">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <AlertCircle size={18} />
+            <span>{error}</span>
+          </div>
+          <button type="button" onClick={() => setError("")}>
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* ========================================
+      {/* =====================================================
+          CUSTOMER DIRECTORY PANEL
+          ===================================================== */}
+
+      <section className="panel" style={{ marginTop: "20px" }}>
+        <div className="panel-header">
+          <div>
+            <span className="panel-kicker">CUSTOMER MANAGEMENT</span>
+            <h2>Customer Directory</h2>
+            <p>Search, filter and manage customer accounts.</p>
+          </div>
+          <Users size={20} />
+        </div>
+
+        <div className="panel-body">
+          {/* TOOLBAR */}
+          <div className="admin-toolbar">
+            <div className="admin-search">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search by ID, name, city, country..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="admin-search-clear"
+                  onClick={() => setSearch("")}
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={segmentFilter}
+              onChange={(e) => setSegmentFilter(e.target.value)}
+              className="admin-filter"
+            >
+              <option value="">All Segments</option>
+              {segments.map((segment) => (
+                <option key={segment} value={segment}>
+                  {segment}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={countryFilter}
+              onChange={(e) => setCountryFilter(e.target.value)}
+              className="admin-filter"
+            >
+              <option value="">All Countries</option>
+              {countries.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* CUSTOMER TABLE */}
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "100px" }}>Customer ID</th>
+                  <th>Customer Name</th>
+                  <th>Gender & Age</th>
+                  <th>Signup Date</th>
+                  <th>Segment</th>
+                  <th>Channel</th>
+                  <th>Location</th>
+                  <th style={{ textAlign: "right", width: "90px" }}>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredCustomers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="admin-empty">
+                      <Users size={32} />
+                      <strong>No customers found</strong>
+                      <span>
+                        Try adjusting your search criteria or add a new customer.
+                      </span>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCustomers.map((customer) => (
+                    <tr key={customer.CustomerKey}>
+                      {/* CUSTOMER ID */}
+                      <td className="product-id">
+                        {customer.CustomerID || "—"}
+                      </td>
+
+                      {/* NAME & AVATAR */}
+                      <td>
+                        <div className="customer-cell">
+                          <div className="customer-avatar">
+                            {getInitials(customer.FirstName, customer.LastName)}
+                          </div>
+                          <div>
+                            <strong>
+                              {customer.FirstName} {customer.LastName}
+                            </strong>
+                            <small>
+                              {customer.City && customer.Country
+                                ? `${customer.City}, ${customer.Country}`
+                                : customer.Country || customer.City || "Location not set"}
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* GENDER & AGE */}
+                      <td>
+                        <span>
+                          {customer.Gender || "—"}
+                          {customer.Age ? ` (${customer.Age} yrs)` : ""}
+                        </span>
+                      </td>
+
+                      {/* SIGNUP DATE */}
+                      <td>
+                        <span>{formatDate(customer.SignupDate)}</span>
+                      </td>
+
+                      {/* SEGMENT */}
+                      <td>
+                        <span className={getSegmentClass(customer.CustomerSegment)}>
+                          {customer.CustomerSegment || "Unassigned"}
+                        </span>
+                      </td>
+
+                      {/* CHANNEL */}
+                      <td>
+                        <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                          {customer.AcquisitionChannel || "Direct"}
+                        </span>
+                      </td>
+
+                      {/* LOCATION */}
+                      <td>
+                        <span>
+                          {customer.City
+                            ? `${customer.City}${customer.Country ? `, ${customer.Country}` : ""}`
+                            : customer.Country || "—"}
+                        </span>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td style={{ textAlign: "right" }}>
+                        <div className="admin-actions" style={{ justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(customer)}
+                            className="admin-action-edit"
+                            title="Edit customer"
+                          >
+                            <Pencil size={15} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(customer.CustomerKey)}
+                            className="admin-action-delete"
+                            title="Delete customer"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* FOOTER */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: "16px",
+              paddingTop: "12px",
+              borderTop: "1px solid var(--border-soft)",
+              fontSize: "13px",
+              color: "var(--text-secondary)",
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              Showing <strong>{filteredCustomers.length}</strong> of{" "}
+              <strong>{customers.length}</strong> customers
+            </p>
+
+            <button
+              type="button"
+              onClick={fetchCustomers}
+              className="admin-btn"
+              style={{ padding: "6px 12px", minHeight: "32px", fontSize: "12px" }}
+            >
+              <RotateCw size={14} />
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
           ADD / EDIT MODAL
-      ======================================== */}
+          ===================================================== */}
 
       {showForm && (
-
-        <div
-          className="admin-modal-overlay"
-          onClick={closeForm}
-        >
-
+        <div className="admin-modal-overlay" onClick={handleCancel}>
           <div
             className="admin-modal customer-modal"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            onClick={(e) => e.stopPropagation()}
           >
-
             <div className="admin-modal-header">
-
               <div>
-                <span className="panel-kicker">
-                  CUSTOMER
-                </span>
-
+                <span className="panel-kicker">CUSTOMER PROFILE</span>
                 <h2>
-                  {editingKey === null
-                    ? "Add Customer"
-                    : "Edit Customer"}
+                  {editingKey !== null
+                    ? "Edit Customer"
+                    : "Add New Customer"}
                 </h2>
               </div>
 
               <button
                 type="button"
-                onClick={closeForm}
+                onClick={handleCancel}
+                className="admin-modal-close"
+                title="Close"
               >
                 <X size={18} />
               </button>
-
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="admin-form customer-form"
-            >
-
+            <form onSubmit={handleSubmit} className="admin-form customer-form">
               <div className="admin-form-grid">
-
                 {/* CUSTOMER ID */}
-
                 <label>
-                  Customer ID
-
+                  <span>
+                    Customer ID {editingKey === null && <em>*</em>}
+                  </span>
                   <input
+                    type="text"
+                    name="CustomerID"
                     value={form.CustomerID}
-                    onChange={(event) =>
-                      handleChange(
-                        "CustomerID",
-                        event.target.value
-                      )
-                    }
-                    disabled={editingKey !== null}
+                    onChange={handleInputChange}
+                    placeholder="e.g. CUST-1001"
                     required
+                    disabled={editingKey !== null}
                   />
                 </label>
 
                 {/* FIRST NAME */}
-
                 <label>
-                  First Name
-
+                  <span>
+                    First Name <em>*</em>
+                  </span>
                   <input
+                    type="text"
+                    name="FirstName"
                     value={form.FirstName}
-                    onChange={(event) =>
-                      handleChange(
-                        "FirstName",
-                        event.target.value
-                      )
-                    }
+                    onChange={handleInputChange}
+                    placeholder="First name"
                     required
                   />
                 </label>
 
                 {/* LAST NAME */}
-
                 <label>
-                  Last Name
-
+                  <span>
+                    Last Name <em>*</em>
+                  </span>
                   <input
+                    type="text"
+                    name="LastName"
                     value={form.LastName}
-                    onChange={(event) =>
-                      handleChange(
-                        "LastName",
-                        event.target.value
-                      )
-                    }
+                    onChange={handleInputChange}
+                    placeholder="Last name"
                     required
                   />
                 </label>
 
                 {/* GENDER */}
-
                 <label>
-                  Gender
-
+                  <span>Gender</span>
                   <select
+                    name="Gender"
                     value={form.Gender}
-                    onChange={(event) =>
-                      handleChange(
-                        "Gender",
-                        event.target.value
-                      )
-                    }
+                    onChange={handleInputChange}
                   >
-                    <option value="">
-                      Select gender
-                    </option>
-
-                    <option value="Male">
-                      Male
-                    </option>
-
-                    <option value="Female">
-                      Female
-                    </option>
-
-                    <option value="Other">
-                      Other
-                    </option>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                   </select>
                 </label>
 
                 {/* AGE */}
-
                 <label>
-                  Age
-
+                  <span>Age</span>
                   <input
                     type="number"
+                    name="Age"
+                    value={form.Age}
+                    onChange={handleInputChange}
+                    placeholder="Age in years"
                     min="0"
                     max="120"
-                    value={form.Age}
-                    onChange={(event) =>
-                      handleChange(
-                        "Age",
-                        event.target.value
-                      )
-                    }
                   />
                 </label>
 
                 {/* SIGNUP DATE */}
-
                 <label>
-                  Signup Date
-
+                  <span>Signup Date</span>
                   <input
                     type="date"
+                    name="SignupDate"
                     value={form.SignupDate}
-                    onChange={(event) =>
-                      handleChange(
-                        "SignupDate",
-                        event.target.value
-                      )
-                    }
-                    required
+                    onChange={handleInputChange}
                   />
                 </label>
 
-                {/* SEGMENT */}
-
+                {/* CUSTOMER SEGMENT */}
                 <label>
-                  Customer Segment
-
-                  <input
+                  <span>Customer Segment</span>
+                  <select
+                    name="CustomerSegment"
                     value={form.CustomerSegment}
-                    onChange={(event) =>
-                      handleChange(
-                        "CustomerSegment",
-                        event.target.value
-                      )
-                    }
-                    placeholder="e.g. Premium"
-                  />
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Segment</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Occasional">Occasional</option>
+                    <option value="New">New</option>
+                  </select>
                 </label>
 
                 {/* ACQUISITION CHANNEL */}
-
                 <label>
-                  Acquisition Channel
-
-                  <input
+                  <span>Acquisition Channel</span>
+                  <select
+                    name="AcquisitionChannel"
                     value={form.AcquisitionChannel}
-                    onChange={(event) =>
-                      handleChange(
-                        "AcquisitionChannel",
-                        event.target.value
-                      )
-                    }
-                    placeholder="e.g. Social Media"
-                  />
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Channel</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Search">Search</option>
+                    <option value="Email">Email</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Direct">Direct</option>
+                    <option value="Paid Ads">Paid Ads</option>
+                  </select>
                 </label>
 
                 {/* CITY */}
-
                 <label>
-                  City
-
+                  <span>City</span>
                   <input
+                    type="text"
+                    name="City"
                     value={form.City}
-                    onChange={(event) =>
-                      handleChange(
-                        "City",
-                        event.target.value
-                      )
-                    }
+                    onChange={handleInputChange}
+                    placeholder="City"
                   />
                 </label>
 
                 {/* COUNTRY */}
-
                 <label>
-                  Country
-
+                  <span>Country</span>
                   <input
+                    type="text"
+                    name="Country"
                     value={form.Country}
-                    onChange={(event) =>
-                      handleChange(
-                        "Country",
-                        event.target.value
-                      )
-                    }
+                    onChange={handleInputChange}
+                    placeholder="Country"
                   />
                 </label>
-
               </div>
 
+              {/* FORM ACTIONS */}
               <div className="admin-form-actions">
-
                 <button
                   type="button"
-                  onClick={closeForm}
+                  onClick={handleCancel}
+                  className="admin-btn"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="admin-btn admin-btn-primary"
                   disabled={saving}
+                  className="admin-btn admin-btn-primary"
                 >
                   {saving
                     ? "Saving..."
-                    : editingKey === null
-                    ? "Add Customer"
-                    : "Save Changes"}
+                    : editingKey !== null
+                    ? "Update Customer"
+                    : "Create Customer"}
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 };

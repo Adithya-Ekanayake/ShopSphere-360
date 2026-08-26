@@ -25,6 +25,17 @@ import "../styles/dashboard.css";
 import "../styles/admin.css";
 
 const Analytics = () => {
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
   const [kpis, setKpis] = useState<KPIData | null>(null);
 
   const [monthlySales, setMonthlySales] = useState<
@@ -251,7 +262,7 @@ const Analytics = () => {
   const totalReturns = returns.reduce(
     (total, item) =>
       total +
-      Number(item.TotalReturns ?? 0),
+      Number(item.QuantityReturned ?? 0),
     0
   );
 
@@ -259,7 +270,7 @@ const Analytics = () => {
     (total, item) =>
       total +
       Number(
-        item.TotalRefundAmount ?? 0
+        item.RefundAmount ?? 0
       ),
     0
   );
@@ -271,16 +282,14 @@ const Analytics = () => {
   const totalTickets = support.reduce(
     (total, item) =>
       total +
-      Number(item.TotalTickets ?? 0),
+      1,
     0
   );
 
   const resolvedTickets = support.reduce(
     (total, item) =>
       total +
-      Number(
-        item.ResolvedTickets ?? 0
-      ),
+      (item.Status === 'Resolved' ? 1 : 0),
     0
   );
 
@@ -1209,7 +1218,7 @@ const Analytics = () => {
 
                       <strong>
                         {formatNumber(
-                          item.TotalReturns
+                          item.QuantityReturned
                         )}
                       </strong>
 

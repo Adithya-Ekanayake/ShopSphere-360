@@ -8,17 +8,37 @@ const getProducts = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT
-        ProductKey,
-        ProductID,
-        ProductName,
-        Category,
-        Subcategory,
-        Brand,
-        Supplier,
-        UnitCost,
-        UnitPrice
-      FROM dim_product
-      ORDER BY ProductKey DESC
+        p.ProductKey,
+        p.ProductID,
+        p.ProductName,
+        p.Category,
+        p.Subcategory,
+        p.Brand,
+        p.Supplier,
+        p.UnitCost,
+        p.UnitPrice,
+        COALESCE(SUM(oi.Quantity), 0) AS UnitsSold,
+        ROUND(COALESCE(SUM(oi.SalesAmount), 0), 2) AS TotalRevenue,
+        ROUND(COALESCE(SUM(oi.ProfitAmount), 0), 2) AS TotalProfit,
+        ROUND(
+          CASE 
+            WHEN p.UnitPrice > 0 THEN ((p.UnitPrice - p.UnitCost) / p.UnitPrice) * 100 
+            ELSE 0 
+          END, 2
+        ) AS MarginPercent
+      FROM dim_product p
+      LEFT JOIN fact_order_items oi ON p.ProductKey = oi.ProductKey
+      GROUP BY
+        p.ProductKey,
+        p.ProductID,
+        p.ProductName,
+        p.Category,
+        p.Subcategory,
+        p.Brand,
+        p.Supplier,
+        p.UnitCost,
+        p.UnitPrice
+      ORDER BY p.ProductKey DESC
     `);
 
     res.json({
@@ -51,17 +71,37 @@ const getProductByKey = async (req, res) => {
     const [rows] = await pool.query(
       `
       SELECT
-        ProductKey,
-        ProductID,
-        ProductName,
-        Category,
-        Subcategory,
-        Brand,
-        Supplier,
-        UnitCost,
-        UnitPrice
-      FROM dim_product
-      WHERE ProductKey = ?
+        p.ProductKey,
+        p.ProductID,
+        p.ProductName,
+        p.Category,
+        p.Subcategory,
+        p.Brand,
+        p.Supplier,
+        p.UnitCost,
+        p.UnitPrice,
+        COALESCE(SUM(oi.Quantity), 0) AS UnitsSold,
+        ROUND(COALESCE(SUM(oi.SalesAmount), 0), 2) AS TotalRevenue,
+        ROUND(COALESCE(SUM(oi.ProfitAmount), 0), 2) AS TotalProfit,
+        ROUND(
+          CASE 
+            WHEN p.UnitPrice > 0 THEN ((p.UnitPrice - p.UnitCost) / p.UnitPrice) * 100 
+            ELSE 0 
+          END, 2
+        ) AS MarginPercent
+      FROM dim_product p
+      LEFT JOIN fact_order_items oi ON p.ProductKey = oi.ProductKey
+      WHERE p.ProductKey = ?
+      GROUP BY
+        p.ProductKey,
+        p.ProductID,
+        p.ProductName,
+        p.Category,
+        p.Subcategory,
+        p.Brand,
+        p.Supplier,
+        p.UnitCost,
+        p.UnitPrice
       `,
       [productKey]
     );

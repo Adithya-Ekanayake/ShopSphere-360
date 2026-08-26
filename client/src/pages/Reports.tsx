@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FileText,
   Download,
@@ -15,14 +15,27 @@ import "../styles/dashboard.css";
 import "../styles/admin.css";
 
 const Reports = () => {
-  const [reportType, setReportType] = useState("All Reports");
-  const [period, setPeriod] = useState("This Year");
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("shopsphere-theme") === "dark";
+  });
+
+  const [reportType, setReportType] = useState<string>("All Reports");
+  const [period, setPeriod] = useState<string>("This Month");
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+
+    localStorage.setItem(
+      "shopsphere-theme",
+      darkMode ? "dark" : "light"
+    );
+  }, [darkMode]);
 
   const reports = [
     {
       title: "Sales Report",
       description:
-        "Detailed overview of sales performance, revenue and order activity.",
+        "Comprehensive sales performance, revenue and growth analysis.",
       category: "Sales",
       icon: BarChart3,
     },
@@ -185,27 +198,27 @@ const Reports = () => {
               }}
             >
 
-              <option>
+              <option value="All Reports">
                 All Reports
               </option>
 
-              <option>
+              <option value="Sales">
                 Sales
               </option>
 
-              <option>
+              <option value="Customers">
                 Customers
               </option>
 
-              <option>
+              <option value="Orders">
                 Orders
               </option>
 
-              <option>
+              <option value="Products">
                 Products
               </option>
 
-              <option>
+              <option value="Financial">
                 Financial
               </option>
 
@@ -250,27 +263,27 @@ const Reports = () => {
               }}
             >
 
-              <option>
+              <option value="This Month">
                 This Month
               </option>
 
-              <option>
+              <option value="Last Month">
                 Last Month
               </option>
 
-              <option>
+              <option value="This Quarter">
                 This Quarter
               </option>
 
-              <option>
+              <option value="Last Quarter">
                 Last Quarter
               </option>
 
-              <option>
+              <option value="This Year">
                 This Year
               </option>
 
-              <option>
+              <option value="Last Year">
                 Last Year
               </option>
 
@@ -281,8 +294,7 @@ const Reports = () => {
         </div>
 
       </section>
-
-      {/* =====================================================
+            {/* =====================================================
           REPORT SUMMARY
       ===================================================== */}
 
@@ -561,7 +573,9 @@ const Reports = () => {
                         marginBottom: "16px",
                       }}
                     >
+
                       <Icon size={20} />
+
                     </div>
 
                     {/* TITLE */}
@@ -655,8 +669,9 @@ const Reports = () => {
           )}
 
         </div>
-
-        {/* NO REPORTS */}
+                {/* =====================================================
+            NO REPORTS
+        ===================================================== */}
 
         {filteredReports.length === 0 && (
 
