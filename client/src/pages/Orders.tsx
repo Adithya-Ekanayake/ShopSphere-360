@@ -218,19 +218,14 @@ const Orders = () => {
 
   if (loading) {
     return (
-      <div className="dashboard">
-        <div className="chart-status">
-          <p>
-            Loading orders...
-          </p>
-        </div>
+      <div className="chart-status" style={{ marginTop: "32px" }}>
+        <p>Loading orders...</p>
       </div>
     );
   }
 
   return (
-    <div className="dashboard">
-
+    <>
       {/* ======================================
           HEADER
           ====================================== */}
@@ -939,7 +934,7 @@ const Orders = () => {
 
       </section>
 
-    </div>
+    </>
   );
 };
 

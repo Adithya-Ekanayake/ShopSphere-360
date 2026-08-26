@@ -1079,9 +1079,8 @@
 /* Main dashboard container */
 .dashboard {
   width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 28px 32px 48px;
+  min-height: 100vh;
+  background: var(--bg);
   box-sizing: border-box;
 }
 
@@ -1096,7 +1095,7 @@
   gap: 24px;
 
   margin-bottom: 24px;
-  padding: 4px 2px;
+  padding: 24px 2px 4px;
 }
 
 .admin-header h1 {

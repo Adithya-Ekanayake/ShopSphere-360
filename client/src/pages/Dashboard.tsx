@@ -4,7 +4,6 @@ import {
   ChevronDown,
   DollarSign,
   Moon,
-  Package,
   ShoppingCart,
   Sun,
   Users,
@@ -77,100 +76,10 @@ const Dashboard = () => {
     })}`;
 
   return (
-    <div className="dashboard">
-
-      {/* SIDEBAR */}
-
-      <aside className="sidebar">
-
-        <div className="brand">
-          <div className="brand-icon">
-            <BarChart3 size={21} />
-          </div>
-
-          <div className="brand-text">
-            <h2>
-              ShopSphere<span>360</span>
-            </h2>
-
-            <p>Business Intelligence</p>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-
-<a
-  href="/"
-  className="nav-item"
->
-  <BarChart3 size={17} />
-  <span>Dashboard</span>
-</a>
-
-          <p className="nav-label">
-            ANALYTICS
-          </p>
-
-          <a href="/sales" className="nav-item">
-            <ShoppingCart size={17} />
-            <span>Sales</span>
-          </a>
-
-          <a href="/customers" className="nav-item">
-            <Users size={17} />
-            <span>Customers</span>
-          </a>
-
-          <a href="/products" className="nav-item">
-            <Package size={17} />
-            <span>Products</span>
-          </a>
-
-          <a href="/sales/orders" className="nav-item">
-            <ShoppingCart size={17} />
-            <span>Orders</span>
-          </a>
-
-          <a href="/sales/transactions" className="nav-item">
-            <Package size={17} />
-            <span>Transactions</span>
-          </a>
-
-          <a href="/analytics" className="nav-item">
-            <BarChart3 size={17} />
-            <span>Analytics</span>
-          </a>
-
-          <a href="/reports" className="nav-item">
-            <BarChart3 size={17} />
-            <span>Reports</span>
-          </a>
-
-        </nav>
-
-        <div className="sidebar-footer">
-          <span className="status-dot" />
-
-          <div>
-            <strong>System Online</strong>
-            <span>MySQL connected</span>
-          </div>
-        </div>
-
-      </aside>
-
-      {/* MAIN */}
-
-      <main
-        className="main-content"
-        id="top"
-      >
-
-        {/* TOPBAR */}
-
-        <header className="topbar">
-
-          <div className="page-title">
+    <>
+      {/* TOPBAR */}
+      <header className="topbar">
+        <div className="page-title">
 
             <p className="breadcrumb">
               OVERVIEW
@@ -742,10 +651,7 @@ const Dashboard = () => {
           </div>
 
         </section>
-
-      </main>
-
-    </div>
+    </>
   );
 };
 

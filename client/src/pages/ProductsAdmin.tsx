@@ -299,11 +299,9 @@ const ProductsAdmin = () => {
 
   if (loading && products.length === 0) {
     return (
-      <div className="dashboard">
-        <div className="admin-loading">
-          <Loader2 className="admin-spinner" />
-          <p>Loading real-time products data...</p>
-        </div>
+      <div className="admin-loading" style={{ marginTop: "32px" }}>
+        <Loader2 className="admin-spinner" />
+        <p>Loading real-time products data...</p>
       </div>
     );
   }
@@ -313,7 +311,7 @@ const ProductsAdmin = () => {
   // =========================================================
 
   return (
-    <div className="dashboard">
+    <>
       {/* =====================================================
           PAGE HEADER
           ===================================================== */}
@@ -830,7 +828,7 @@ const ProductsAdmin = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

@@ -351,11 +351,9 @@ const CustomersAdmin = () => {
 
   if (loading) {
     return (
-      <div className="dashboard">
-        <div className="admin-loading">
-          <Loader2 className="admin-spinner" />
-          <p>Loading customers...</p>
-        </div>
+      <div className="admin-loading" style={{ marginTop: "32px" }}>
+        <Loader2 className="admin-spinner" />
+        <p>Loading customers...</p>
       </div>
     );
   }
@@ -365,7 +363,7 @@ const CustomersAdmin = () => {
   // =========================================================
 
   return (
-    <div className="dashboard">
+    <>
       {/* =====================================================
           HEADER
           ===================================================== */}
@@ -872,7 +870,7 @@ const CustomersAdmin = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
