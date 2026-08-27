@@ -18,7 +18,7 @@ const Transactions = () => {
      DARK MODE
      ========================================================= */
 
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
+  const [darkMode] = useState<boolean>(() => {
     return localStorage.getItem("shopsphere-theme") === "dark";
   });
 

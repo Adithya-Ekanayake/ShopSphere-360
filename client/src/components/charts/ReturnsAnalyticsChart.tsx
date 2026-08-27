@@ -12,6 +12,8 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { serializeFilters } from "../../services/analyticsService";
+import { useFilters } from "../../context/FilterContext";
 
 interface ReturnData {
   ReturnReason?: string;
@@ -34,6 +36,7 @@ const getReturnColor = (reason: string, index: number) =>
     : RETURN_COLORS[index % RETURN_COLORS.length];
 
 const ReturnsAnalyticsChart = () => {
+  const { filters } = useFilters();
   const [data, setData] = useState<ReasonData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -41,7 +44,9 @@ const ReturnsAnalyticsChart = () => {
   useEffect(() => {
     const fetchReturns = async () => {
       try {
-        const response = await api.get("/analytics/returns");
+        const response = await api.get(
+          `/analytics/returns?${serializeFilters(filters)}`
+        );
 
         const returns: ReturnData[] =
           response.data.data ?? [];
@@ -122,7 +127,7 @@ const ReturnsAnalyticsChart = () => {
     };
 
     fetchReturns();
-  }, []);
+  }, [filters]);
 
   /* =====================================================
      TOTALS

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import { FilterProvider } from "../context/FilterContext";
 
 export const AppLayout = () => {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -24,9 +25,11 @@ export const AppLayout = () => {
 
   return (
     <div className="dashboard">
-      <Sidebar darkMode={darkMode} onToggleTheme={toggleTheme} />
+      <Sidebar />
       <main className="main-content" id="top">
-        <Outlet context={{ darkMode, toggleTheme }} />
+        <FilterProvider>
+          <Outlet context={{ darkMode, toggleTheme }} />
+        </FilterProvider>
       </main>
     </div>
   );

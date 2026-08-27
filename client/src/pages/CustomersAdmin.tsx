@@ -22,8 +22,16 @@ import type {
 
 import "../styles/dashboard.css";
 import "../styles/admin.css";
+import ExportMenu from "../components/ExportMenu";
+import ConfirmDialog from "../components/ConfirmDialog";
+import Pagination from "../components/Pagination";
+
+import { useAuth } from "../context/AuthContext";
 
 const CustomersAdmin = () => {
+  const { canWrite } = useAuth();
+  const canManage = canWrite();
+
   // =========================================================
   // DARK MODE
   // =========================================================
@@ -65,12 +73,15 @@ const CustomersAdmin = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
 
   const [showForm, setShowForm] = useState(false);
+  const [pendingDeleteKey, setPendingDeleteKey] = useState<number | null>(null);
   const [editingKey, setEditingKey] = useState<number | null>(null);
   const [form, setForm] = useState<CustomerInput>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -84,8 +95,9 @@ const CustomersAdmin = () => {
       setLoading(true);
       setError("");
 
-      const data = await customerService.getAll();
-      setCustomers(data);
+      const result = await customerService.getPage(page, search);
+      setCustomers(result.data);
+      setTotalPages(result.pagination.totalPages);
     } catch (err) {
       console.error("Failed to fetch customers:", err);
       setError("Failed to load customers. Please try again.");
@@ -96,46 +108,23 @@ const CustomersAdmin = () => {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [page, search]);
 
   // =========================================================
   // FILTER CUSTOMERS
   // =========================================================
 
   const filteredCustomers = useMemo(() => {
-    const searchTerm = search.trim().toLowerCase();
-
     return customers.filter((customer) => {
-      const matchesSearch =
-        !searchTerm ||
-        String(customer.CustomerID ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(customer.FirstName ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(customer.LastName ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        `${customer.FirstName ?? ""} ${customer.LastName ?? ""}`
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(customer.City ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(customer.Country ?? "")
-          .toLowerCase()
-          .includes(searchTerm);
-
       const matchesSegment =
         !segmentFilter || customer.CustomerSegment === segmentFilter;
 
       const matchesCountry =
         !countryFilter || customer.Country === countryFilter;
 
-      return matchesSearch && matchesSegment && matchesCountry;
+      return matchesSegment && matchesCountry;
     });
-  }, [customers, search, segmentFilter, countryFilter]);
+  }, [customers, segmentFilter, countryFilter]);
 
   // =========================================================
   // UNIQUE SEGMENTS & COUNTRIES
@@ -258,20 +247,21 @@ const CustomersAdmin = () => {
   // =========================================================
 
   const handleDelete = async (customerKey: number) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this customer?"
-    );
+    setPendingDeleteKey(customerKey);
+  };
 
-    if (!confirmed) return;
+  const confirmDelete = async () => {
+    if (pendingDeleteKey === null) return;
 
     try {
       setError("");
 
-      await customerService.remove(customerKey);
+      await customerService.remove(pendingDeleteKey);
+      setPendingDeleteKey(null);
 
       setCustomers((previousCustomers) =>
         previousCustomers.filter(
-          (customer) => customer.CustomerKey !== customerKey
+          (customer) => customer.CustomerKey !== pendingDeleteKey
         )
       );
     } catch (err) {
@@ -377,14 +367,17 @@ const CustomersAdmin = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleAddCustomer}
-          className="admin-btn admin-btn-primary"
-        >
-          <Plus size={16} />
-          <span>Add Customer</span>
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            onClick={handleAddCustomer}
+            className="admin-btn admin-btn-primary"
+          >
+            <Plus size={16} />
+            <span>Add Customer</span>
+          </button>
+        )}
+        <ExportMenu dataset="customers" />
       </div>
 
       {/* =====================================================
@@ -476,7 +469,7 @@ const CustomersAdmin = () => {
                 type="text"
                 placeholder="Search by ID, name, city, country..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setPage(1); setSearch(e.target.value); }}
               />
               {search && (
                 <button
@@ -538,7 +531,7 @@ const CustomersAdmin = () => {
                   <tr>
                     <td colSpan={8} className="admin-empty">
                       <Users size={32} />
-                      <strong>No customers found</strong>
+                      <strong>{search || segmentFilter || countryFilter ? "No customers match these filters" : "No customers found"}</strong>
                       <span>
                         Try adjusting your search criteria or add a new customer.
                       </span>
@@ -609,31 +602,34 @@ const CustomersAdmin = () => {
 
                       {/* ACTIONS */}
                       <td style={{ textAlign: "right" }}>
-                        <div className="admin-actions" style={{ justifyContent: "flex-end" }}>
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(customer)}
-                            className="admin-action-edit"
-                            title="Edit customer"
-                          >
-                            <Pencil size={15} />
-                          </button>
+                        {canManage && (
+                          <div className="admin-actions" style={{ justifyContent: "flex-end" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(customer)}
+                              className="admin-action-edit"
+                              title="Edit customer"
+                            >
+                              <Pencil size={15} />
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(customer.CustomerKey)}
-                            className="admin-action-delete"
-                            title="Delete customer"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(customer.CustomerKey)}
+                              className="admin-action-delete"
+                              title="Delete customer"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
 
           {/* FOOTER */}
@@ -870,6 +866,13 @@ const CustomersAdmin = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeleteKey !== null}
+        title="Delete customer?"
+        message="This customer record will be permanently removed."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteKey(null)}
+      />
     </>
   );
 };

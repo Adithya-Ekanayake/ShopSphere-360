@@ -1,4 +1,5 @@
 const express = require("express");
+const { filterValidation } = require("../middleware/validation");
 
 const {
   getKPIs,
@@ -8,9 +9,27 @@ const {
   getMarketingAnalytics,
   getReturnsAnalytics,
   getSupportAnalytics,
+  getFilterOptions,
+  getCustomerRfm,
+  getCustomerClv,
+  getCustomerRetention,
+  getProductProfitability,
+  getCustomerCohorts,
 } = require("../controllers/analyticsController");
 
 const router = express.Router();
+router.use(filterValidation);
+
+// ==========================================
+// FILTER OPTIONS
+// ==========================================
+
+router.get("/filter-options", getFilterOptions);
+router.get("/rfm", getCustomerRfm);
+router.get("/clv", getCustomerClv);
+router.get("/retention", getCustomerRetention);
+router.get("/product-profitability", getProductProfitability);
+router.get("/cohorts", getCustomerCohorts);
 
 // ==========================================
 // SALES

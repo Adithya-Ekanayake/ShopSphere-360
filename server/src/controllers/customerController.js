@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
 
 // ==========================================
 // GET ALL CUSTOMERS
@@ -6,6 +7,11 @@ const pool = require("../config/db");
 
 const getCustomers = async (req, res) => {
   try {
+    const { page, limit, search } = parsePagination(req.query);
+    const like = `%${search}%`;
+    const searchClause = search ? "WHERE CustomerID LIKE ? OR FirstName LIKE ? OR LastName LIKE ? OR City LIKE ? OR Country LIKE ?" : "";
+    const searchParams = search ? [like, like, like, like, like] : [];
+    const [[countRow]] = await pool.query(`SELECT COUNT(*) AS total FROM dim_customer ${searchClause}`, searchParams);
     const [rows] = await pool.query(`
       SELECT
         CustomerKey,
@@ -20,13 +26,16 @@ const getCustomers = async (req, res) => {
         City,
         Country
       FROM dim_customer
+      ${searchClause}
       ORDER BY CustomerKey DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, [...searchParams, limit, (page - 1) * limit]);
 
     res.json({
       status: "success",
-      count: rows.length,
+      count: Number(countRow.total),
       data: rows,
+      pagination: paginationMeta(page, limit, Number(countRow.total)),
     });
   } catch (error) {
     console.error(
@@ -128,11 +137,11 @@ const createCustomer = async (req, res) => {
     if (
       Age !== "" &&
       Age != null &&
-      (Number(Age) < 0 || Number(Age) > 120)
+      (Number(Age) < 13 || Number(Age) > 100)
     ) {
       return res.status(400).json({
         status: "error",
-        message: "Age must be between 0 and 120",
+        message: "Age must be between 13 and 100",
       });
     }
 

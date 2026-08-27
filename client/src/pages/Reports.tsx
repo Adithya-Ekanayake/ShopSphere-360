@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   FileText,
-  Download,
   BarChart3,
+  Megaphone,
   Users,
   ShoppingCart,
   Package,
@@ -13,9 +13,11 @@ import {
 
 import "../styles/dashboard.css";
 import "../styles/admin.css";
+import ExportMenu from "../components/ExportMenu";
+import FilterBar from "../components/FilterBar";
 
 const Reports = () => {
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
+  const [darkMode] = useState<boolean>(() => {
     return localStorage.getItem("shopsphere-theme") === "dark";
   });
 
@@ -38,6 +40,7 @@ const Reports = () => {
         "Comprehensive sales performance, revenue and growth analysis.",
       category: "Sales",
       icon: BarChart3,
+      reportType: "sales-summary" as const,
     },
     {
       title: "Customer Report",
@@ -45,6 +48,14 @@ const Reports = () => {
         "Customer purchasing activity, segments and customer value insights.",
       category: "Customers",
       icon: Users,
+      reportType: "customer-summary" as const,
+    },
+    {
+      title: "Marketing Report",
+      description: "Channel spend, attributed revenue, and return on advertising spend.",
+      category: "Marketing",
+      icon: Megaphone,
+      reportType: "marketing-summary" as const,
     },
     {
       title: "Order Report",
@@ -52,6 +63,7 @@ const Reports = () => {
         "Summary of orders, order values and transaction activity.",
       category: "Orders",
       icon: ShoppingCart,
+      reportType: "order-summary" as const,
     },
     {
       title: "Product Performance Report",
@@ -59,6 +71,7 @@ const Reports = () => {
         "Product sales performance, revenue contribution and profitability.",
       category: "Products",
       icon: Package,
+      reportType: "product-performance" as const,
     },
     {
       title: "Profitability Report",
@@ -66,6 +79,7 @@ const Reports = () => {
         "Revenue, costs, profit margins and overall business profitability.",
       category: "Financial",
       icon: TrendingUp,
+      reportType: "profitability-summary" as const,
     },
   ];
 
@@ -75,16 +89,6 @@ const Reports = () => {
       : reports.filter(
           (report) => report.category === reportType
         );
-
-  const handleGenerateReport = (reportName: string) => {
-    console.log(
-      `Generating ${reportName} for ${period}`
-    );
-
-    alert(
-      `${reportName} will be generated for ${period}.`
-    );
-  };
 
   return (
     <>
@@ -117,21 +121,15 @@ const Reports = () => {
 
       </div>
 
+      <FilterBar />
+
       {/* =====================================================
           REPORT CONTROLS
       ===================================================== */}
 
-      <section
-        className="panel"
-        style={{
-          marginTop: "20px",
-        }}
-      >
-
+      <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel-header">
-
           <div>
-
             <span className="panel-kicker">
               REPORT FILTERS
             </span>
@@ -184,17 +182,7 @@ const Reports = () => {
               onChange={(e) =>
                 setReportType(e.target.value)
               }
-              style={{
-                width: "100%",
-                padding: "11px 12px",
-                borderRadius: "8px",
-                border:
-                  "1px solid var(--border-color)",
-                background:
-                  "var(--background-secondary)",
-                color: "var(--text-primary)",
-                outline: "none",
-              }}
+              className="report-filter-select"
             >
 
               <option value="All Reports">
@@ -207,6 +195,10 @@ const Reports = () => {
 
               <option value="Customers">
                 Customers
+              </option>
+
+              <option value="Marketing">
+                Marketing
               </option>
 
               <option value="Orders">
@@ -249,17 +241,7 @@ const Reports = () => {
               onChange={(e) =>
                 setPeriod(e.target.value)
               }
-              style={{
-                width: "100%",
-                padding: "11px 12px",
-                borderRadius: "8px",
-                border:
-                  "1px solid var(--border-color)",
-                background:
-                  "var(--background-secondary)",
-                color: "var(--text-primary)",
-                outline: "none",
-              }}
+              className="report-filter-select"
             >
 
               <option value="This Month">
@@ -625,38 +607,7 @@ const Reports = () => {
 
                     {/* BUTTON */}
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleGenerateReport(
-                          report.title
-                        )
-                      }
-                      style={{
-                        width: "100%",
-                        marginTop: "18px",
-                        padding: "11px 14px",
-                        border: "none",
-                        borderRadius: "8px",
-                        background:
-                          "var(--primary)",
-                        color: "#fff",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent:
-                          "center",
-                        gap: "8px",
-                        fontWeight: 600,
-                        fontSize: "13px",
-                      }}
-                    >
-
-                      <Download size={16} />
-
-                      Generate Report
-
-                    </button>
+                    <ExportMenu reportType={report.reportType} />
 
                   </div>
 

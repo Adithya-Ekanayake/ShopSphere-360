@@ -10,6 +10,8 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { serializeFilters } from "../../services/analyticsService";
+import { useFilters } from "../../context/FilterContext";
 
 interface ProductData {
   ProductName: string;
@@ -23,6 +25,7 @@ interface ChartData {
 }
 
 const TopProductsChart = () => {
+  const { filters } = useFilters();
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,7 +33,9 @@ const TopProductsChart = () => {
   useEffect(() => {
     const fetchTopProducts = async () => {
       try {
-        const response = await api.get("/analytics/top-products");
+        const response = await api.get(
+          `/analytics/top-products?${serializeFilters(filters)}`
+        );
 
         const products: ProductData[] = response.data.data;
 
@@ -55,7 +60,7 @@ const TopProductsChart = () => {
     };
 
     fetchTopProducts();
-  }, []);
+  }, [filters]);
 
   if (loading) {
     return (

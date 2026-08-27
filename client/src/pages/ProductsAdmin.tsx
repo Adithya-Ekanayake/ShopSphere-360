@@ -16,27 +16,22 @@ import {
 
 import productService from "../services/productService";
 import type { Product, ProductInput } from "../types/product";
+import { useAuth } from "../context/AuthContext";
 
 import "../styles/dashboard.css";
 import "../styles/admin.css";
+import ExportMenu from "../components/ExportMenu";
+import ConfirmDialog from "../components/ConfirmDialog";
+import Pagination from "../components/Pagination";
 
 const ProductsAdmin = () => {
+  const { canWrite } = useAuth();
+
   // =========================================================
-  // DARK MODE
+  // HELPER
   // =========================================================
 
-  const [darkMode] = useState<boolean>(() => {
-    return localStorage.getItem("shopsphere-theme") === "dark";
-  });
-
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", darkMode);
-
-    localStorage.setItem(
-      "shopsphere-theme",
-      darkMode ? "dark" : "light"
-    );
-  }, [darkMode]);
+  const canManage = canWrite();
 
   // =========================================================
   // EMPTY FORM
@@ -60,6 +55,9 @@ const ProductsAdmin = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -69,6 +67,7 @@ const ProductsAdmin = () => {
   const [editingKey, setEditingKey] = useState<number | null>(null);
   const [form, setForm] = useState<ProductInput>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [pendingDeleteKey, setPendingDeleteKey] = useState<number | null>(null);
 
   // =========================================================
   // FETCH PRODUCTS (REAL-TIME)
@@ -79,8 +78,10 @@ const ProductsAdmin = () => {
       setLoading(true);
       setError("");
 
-      const data = await productService.getAll();
-      setProducts(data);
+      const result = await productService.getPage(page, search);
+      setProducts(result.data);
+      setTotalPages(result.pagination.totalPages);
+      setTotalProducts(result.pagination.total);
     } catch (err) {
       console.error("Failed to load products:", err);
       setError("Unable to load real-time products data. Please check your backend connection.");
@@ -91,46 +92,23 @@ const ProductsAdmin = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [page, search]);
 
   // =========================================================
   // FILTER PRODUCTS
   // =========================================================
 
   const filteredProducts = useMemo(() => {
-    const searchTerm = search.trim().toLowerCase();
-
     return products.filter((product) => {
-      const matchesSearch =
-        !searchTerm ||
-        String(product.ProductID ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(product.ProductName ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(product.Category ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(product.Subcategory ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(product.Brand ?? "")
-          .toLowerCase()
-          .includes(searchTerm) ||
-        String(product.Supplier ?? "")
-          .toLowerCase()
-          .includes(searchTerm);
-
       const matchesCategory =
         !categoryFilter || product.Category === categoryFilter;
 
       const matchesBrand =
         !brandFilter || product.Brand === brandFilter;
 
-      return matchesSearch && matchesCategory && matchesBrand;
+      return matchesCategory && matchesBrand;
     });
-  }, [products, search, categoryFilter, brandFilter]);
+  }, [products, categoryFilter, brandFilter]);
 
   // =========================================================
   // UNIQUE CATEGORIES & BRANDS
@@ -156,7 +134,7 @@ const ProductsAdmin = () => {
   // REAL-TIME KPI TOTALS
   // =========================================================
 
-  const totalProductsCount = products.length;
+  const totalProductsCount = totalProducts;
 
   const totalUnitsSold = useMemo(() => {
     return products.reduce(
@@ -222,15 +200,16 @@ const ProductsAdmin = () => {
   };
 
   const handleDelete = async (productKey: number) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product? Real-time database records will be permanently removed."
-    );
+    setPendingDeleteKey(productKey);
+  };
 
-    if (!confirmed) return;
+  const confirmDelete = async () => {
+    if (pendingDeleteKey === null) return;
 
     try {
       setError("");
-      await productService.remove(productKey);
+      await productService.remove(pendingDeleteKey);
+      setPendingDeleteKey(null);
       await fetchProducts();
     } catch (err: any) {
       console.error("Failed to delete product:", err);
@@ -325,14 +304,17 @@ const ProductsAdmin = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="admin-btn admin-btn-primary"
-        >
-          <Plus size={16} />
-          <span>Add Product</span>
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="admin-btn admin-btn-primary"
+          >
+            <Plus size={16} />
+            <span>Add Product</span>
+          </button>
+        )}
+        <ExportMenu dataset="products" />
       </div>
 
       {/* =====================================================
@@ -346,7 +328,7 @@ const ProductsAdmin = () => {
           </div>
           <div className="kpi-content">
             <span>Total Products</span>
-            <strong>{totalProductsCount.toLocaleString()}</strong>
+              <strong>{totalProductsCount.toLocaleString()}</strong>
             <small>Live catalog count</small>
           </div>
         </div>
@@ -428,7 +410,7 @@ const ProductsAdmin = () => {
                 type="text"
                 placeholder="Search products by ID, name, brand, category..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setPage(1); setSearch(e.target.value); }}
               />
               {search && (
                 <button
@@ -493,7 +475,7 @@ const ProductsAdmin = () => {
                   <tr>
                     <td colSpan={9} className="admin-empty">
                       <Package size={32} />
-                      <strong>No products found</strong>
+                      <strong>{search || categoryFilter || brandFilter ? "No products match these filters" : "No products found"}</strong>
                       <span>
                         Try adjusting your search criteria or add a new product.
                       </span>
@@ -594,25 +576,27 @@ const ProductsAdmin = () => {
 
                         {/* ACTIONS */}
                         <td style={{ textAlign: "right" }}>
-                          <div className="admin-actions" style={{ justifyContent: "flex-end" }}>
-                            <button
-                              type="button"
-                              onClick={() => handleEdit(product)}
-                              className="admin-action-edit"
-                              title="Edit product"
-                            >
-                              <Pencil size={15} />
-                            </button>
+                          {canManage && (
+                            <div className="admin-actions" style={{ justifyContent: "flex-end" }}>
+                              <button
+                                type="button"
+                                onClick={() => handleEdit(product)}
+                                className="admin-action-edit"
+                                title="Edit product"
+                              >
+                                <Pencil size={15} />
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(product.ProductKey)}
-                              className="admin-action-delete"
-                              title="Delete product"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(product.ProductKey)}
+                                className="admin-action-delete"
+                                title="Delete product"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -620,6 +604,7 @@ const ProductsAdmin = () => {
                 )}
               </tbody>
             </table>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
 
           {/* FOOTER */}
@@ -637,7 +622,7 @@ const ProductsAdmin = () => {
           >
             <p style={{ margin: 0 }}>
               Showing <strong>{filteredProducts.length}</strong> of{" "}
-              <strong>{products.length}</strong> live products
+              <strong>{totalProducts.toLocaleString()}</strong> live products
             </p>
 
             <button
@@ -828,6 +813,13 @@ const ProductsAdmin = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeleteKey !== null}
+        title="Delete product?"
+        message="This product and its catalog record will be permanently removed."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteKey(null)}
+      />
     </>
   );
 };

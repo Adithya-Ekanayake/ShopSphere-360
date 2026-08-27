@@ -1,4 +1,5 @@
 const express = require("express");
+const { reportValidation } = require("../middleware/validation");
 
 const {
   getSalesReport,
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.get(
   "/sales",
+  reportValidation,
   getSalesReport
 );
 
@@ -25,6 +27,7 @@ router.get(
 
 router.get(
   "/revenue-profit",
+  reportValidation,
   getRevenueProfitReport
 );
 
@@ -34,6 +37,7 @@ router.get(
 
 router.get(
   "/customers",
+  reportValidation,
   getCustomerReport
 );
 
@@ -43,6 +47,7 @@ router.get(
 
 router.get(
   "/products",
+  reportValidation,
   getProductReport
 );
 
@@ -52,6 +57,7 @@ router.get(
 
 router.get(
   "/transactions",
+  reportValidation,
   getTransactionReport
 );
 

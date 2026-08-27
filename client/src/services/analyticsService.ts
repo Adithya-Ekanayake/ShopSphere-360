@@ -1,4 +1,17 @@
 import api from "./api";
+import type { DashboardFilters } from "../types/filters";
+
+export const serializeFilters = (filters?: Partial<DashboardFilters>): string => {
+  const params = new URLSearchParams();
+
+  Object.entries(filters ?? {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+
+  return params.toString();
+};
 
 export interface KPIData {
   TotalRevenue: number | string;
@@ -42,6 +55,7 @@ export interface CustomerAnalyticsData {
   CustomerID: string;
   FirstName: string;
   LastName: string;
+  FullName?: string;
   Gender?: string;
   Age?: number | string;
   CustomerSegment?: string;
@@ -64,6 +78,8 @@ export interface MarketingAnalyticsData {
 }
 
 export interface ReturnsAnalyticsData {
+  QuantityReturned: number | string;
+  RefundAmount: number | string;
   ReturnReason?: string;
   TotalReturns: number | string;
   TotalRefundAmount: number | string;
@@ -72,64 +88,65 @@ export interface ReturnsAnalyticsData {
 
 export interface SupportAnalyticsData {
   IssueType?: string;
+  Status?: string;
   TotalTickets: number | string;
   ResolvedTickets?: number | string;
   AverageResolutionTime?: number | string;
 }
 
 export const analyticsService = {
-  async getKPIs(): Promise<KPIData> {
-    const response = await api.get("/analytics/kpis");
+  async getKPIs(filters?: Partial<DashboardFilters>): Promise<KPIData> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/kpis?${params}`);
 
     return response.data.data;
   },
 
-  async getMonthlySales(): Promise<MonthlySalesData[]> {
-    const response = await api.get(
-      "/analytics/monthly-sales"
-    );
+  async getMonthlySales(filters?: Partial<DashboardFilters>): Promise<MonthlySalesData[]> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/monthly-sales?${params}`);
 
     return response.data.data ?? [];
   },
 
-  async getTopProducts(): Promise<ProductAnalyticsData[]> {
-    const response = await api.get(
-      "/analytics/top-products"
-    );
+  async getTopProducts(filters?: Partial<DashboardFilters>): Promise<ProductAnalyticsData[]> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/top-products?${params}`);
 
     return response.data.data ?? [];
   },
 
-  async getCustomers(): Promise<CustomerAnalyticsData[]> {
-    const response = await api.get(
-      "/analytics/customers"
-    );
+  async getCustomers(filters?: Partial<DashboardFilters>): Promise<CustomerAnalyticsData[]> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/customers?${params}`);
 
     return response.data.data ?? [];
   },
 
-  async getMarketing(): Promise<MarketingAnalyticsData[]> {
-    const response = await api.get(
-      "/analytics/marketing"
-    );
+  async getMarketing(filters?: Partial<DashboardFilters>): Promise<MarketingAnalyticsData[]> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/marketing?${params}`);
 
     return response.data.data ?? [];
   },
 
-  async getReturns(): Promise<ReturnsAnalyticsData[]> {
-    const response = await api.get(
-      "/analytics/returns"
-    );
+  async getReturns(filters?: Partial<DashboardFilters>): Promise<ReturnsAnalyticsData[]> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/returns?${params}`);
 
     return response.data.data ?? [];
   },
 
-  async getSupport(): Promise<SupportAnalyticsData[]> {
-    const response = await api.get(
-      "/analytics/support"
-    );
+  async getSupport(filters?: Partial<DashboardFilters>): Promise<SupportAnalyticsData[]> {
+    const params = serializeFilters(filters);
+    const response = await api.get(`/analytics/support?${params}`);
 
     return response.data.data ?? [];
+  },
+
+  async getFilterOptions() {
+    const response = await api.get("/analytics/filter-options");
+    return response.data.data;
   },
 };
 

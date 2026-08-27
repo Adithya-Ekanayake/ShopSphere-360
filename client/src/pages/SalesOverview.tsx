@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   DollarSign,
@@ -9,20 +9,19 @@ import {
 } from "lucide-react";
 
 import analyticsService from "../services/analyticsService";
-import type {
-  KPIData,
-  MonthlySalesData,
-} from "../types/analytics";
+import type { KPIData, MonthlySalesData } from "../services/analyticsService";
+import { useFilters } from "../context/FilterContext";
 
 import "../styles/dashboard.css";
 import "../styles/admin.css";
 
 const SalesOverview = () => {
+  const { filters } = useFilters();
   /* =========================================================
      DARK MODE
      ========================================================= */
 
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
+  const [darkMode] = useState<boolean>(() => {
     return localStorage.getItem("shopsphere-theme") === "dark";
   });
 
@@ -59,8 +58,8 @@ const SalesOverview = () => {
         setError("");
 
         const [kpiData, monthlyData] = await Promise.all([
-          analyticsService.getKPIs(),
-          analyticsService.getMonthlySales(),
+          analyticsService.getKPIs(filters),
+          analyticsService.getMonthlySales(filters),
         ]);
 
         setKpis(kpiData);
@@ -77,7 +76,7 @@ const SalesOverview = () => {
     };
 
     loadSalesData();
-  }, []);
+  }, [filters]);
 
   /* =========================================================
      KPI VALUES
@@ -133,33 +132,6 @@ const SalesOverview = () => {
 
     return `LKR ${value.toFixed(0)}`;
   };
-
-  /* =========================================================
-     MONTHLY SALES SUMMARY
-     ========================================================= */
-
-  const salesSummary = useMemo(() => {
-    return monthlySales.reduce(
-      (total, month) => ({
-        revenue:
-          total.revenue +
-          Number(month.TotalRevenue ?? 0),
-
-        profit:
-          total.profit +
-          Number(month.TotalProfit ?? 0),
-
-        orders:
-          total.orders +
-          Number(month.TotalOrders ?? 0),
-      }),
-      {
-        revenue: 0,
-        profit: 0,
-        orders: 0,
-      }
-    );
-  }, [monthlySales]);
 
   /* =========================================================
      MAX REVENUE FOR BAR GRAPH

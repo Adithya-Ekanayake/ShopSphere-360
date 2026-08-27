@@ -10,6 +10,8 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { serializeFilters } from "../../services/analyticsService";
+import { useFilters } from "../../context/FilterContext";
 
 interface SupportData {
   IssueType?: string;
@@ -25,6 +27,7 @@ interface SupportData {
 }
 
 const SupportAnalyticsChart = () => {
+  const { filters } = useFilters();
   const [supportData, setSupportData] = useState<SupportData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,7 +35,9 @@ const SupportAnalyticsChart = () => {
   useEffect(() => {
     const fetchSupportAnalytics = async () => {
       try {
-        const response = await api.get("/analytics/support");
+        const response = await api.get(
+          `/analytics/support?${serializeFilters(filters)}`
+        );
 
         const data: SupportData[] =
           response.data.data ?? [];
@@ -53,7 +58,7 @@ const SupportAnalyticsChart = () => {
     };
 
     fetchSupportAnalytics();
-  }, []);
+  }, [filters]);
 
   /* =====================================================
      SUMMARY CALCULATIONS

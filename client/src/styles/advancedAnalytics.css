@@ -1,0 +1,146 @@
+.advanced-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.advanced-export-menu {
+  align-items: center;
+  gap: 14px;
+}
+
+.advanced-export-menu > .export-menu {
+  align-items: center;
+}
+
+.export-menu-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.advanced-section-body {
+  min-height: 210px;
+}
+
+.advanced-section .recharts-tooltip-wrapper,
+.advanced-section .recharts-default-tooltip {
+  background: var(--surface-soft) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.advanced-section .recharts-tooltip-label,
+.advanced-section .recharts-tooltip-item,
+.advanced-section .recharts-tooltip-item-name,
+.advanced-section .recharts-tooltip-item-value,
+.advanced-section .recharts-tooltip-item-unit {
+  color: var(--text) !important;
+}
+
+.advanced-chart-wrap {
+  width: 100%;
+  min-height: 220px;
+}
+
+.advanced-two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.advanced-table-wrap h3,
+.advanced-chart-wrap h3 {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.advanced-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.advanced-table th,
+.advanced-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+}
+
+.advanced-table th {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.advanced-table td:last-child,
+.advanced-table th:last-child {
+  text-align: right;
+}
+
+.cohort-table-wrap {
+  overflow-x: auto;
+}
+
+.cohort-table {
+  min-width: 620px;
+}
+
+.cohort-cell {
+  display: inline-block;
+  min-width: 54px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: #fff;
+  text-align: center;
+  font-weight: 700;
+}
+
+.advanced-stat-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.advanced-stat-row strong {
+  color: var(--text);
+  font-size: 20px;
+}
+
+.advanced-legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.healthy-dot {
+  background: var(--primary);
+}
+
+.low-margin-dot {
+  margin-left: 10px;
+  background: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .advanced-two-column {
+    grid-template-columns: 1fr;
+  }
+}

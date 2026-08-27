@@ -1,4 +1,5 @@
 const express = require("express");
+const { filterValidation } = require("../middleware/validation");
 
 const {
   getTransactionKPIs,
@@ -7,6 +8,7 @@ const {
 } = require("../controllers/transactionsController");
 
 const router = express.Router();
+router.use(filterValidation);
 
 router.get(
   "/kpis",

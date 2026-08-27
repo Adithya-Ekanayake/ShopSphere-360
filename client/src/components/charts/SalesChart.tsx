@@ -10,6 +10,8 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { serializeFilters } from "../../services/analyticsService";
+import { useFilters } from "../../context/FilterContext";
 
 interface MonthlySales {
   Year: number;
@@ -145,6 +147,7 @@ const CustomTooltip = ({
    ========================================================= */
 
 const SalesChart = () => {
+  const { filters } = useFilters();
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -160,7 +163,7 @@ const SalesChart = () => {
         setError("");
 
         const response = await api.get(
-          "/analytics/monthly-sales"
+          `/analytics/monthly-sales?${serializeFilters(filters)}`
         );
 
         const salesData: MonthlySales[] =
@@ -206,7 +209,7 @@ const SalesChart = () => {
     };
 
     fetchMonthlySales();
-  }, []);
+  }, [filters]);
 
   /* =======================================================
      CALCULATE Y-AXIS DOMAIN

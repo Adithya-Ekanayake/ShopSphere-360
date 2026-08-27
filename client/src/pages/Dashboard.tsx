@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   BarChart3,
   ChevronDown,
   DollarSign,
-  Moon,
   ShoppingCart,
-  Sun,
   Users,
 } from "lucide-react";
 
-import api from "../services/api";
-import type { KPIData } from "../types/analytics";
+import analyticsService, { type KPIData } from "../services/analyticsService";
+import { useFilters } from "../context/FilterContext";
 
 import SalesChart from "../components/charts/SalesChart";
 import CustomerAnalyticsChart from "../components/charts/CustomerAnalyticsChart";
@@ -18,33 +17,24 @@ import MarketingAnalyticsChart from "../components/charts/MarketingAnalyticsChar
 import ReturnsAnalyticsChart from "../components/charts/ReturnsAnalyticsChart";
 import SupportAnalyticsChart from "../components/charts/SupportAnalyticsChart";
 import TopProductsChart from "../components/charts/TopProductsChart";
+import FilterBar from "../components/FilterBar";
+import ExportMenu from "../components/ExportMenu";
+import AccountControls from "../components/AccountControls";
 
 import "../styles/dashboard.css";
 
 const Dashboard = () => {
+  const { darkMode, toggleTheme } = useOutletContext<{ darkMode: boolean; toggleTheme: () => void }>();
   const [kpis, setKpis] = useState<KPIData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem("shopsphere-theme") === "dark";
-  });
-
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", darkMode);
-
-    localStorage.setItem(
-      "shopsphere-theme",
-      darkMode ? "dark" : "light"
-    );
-  }, [darkMode]);
+  const { filters } = useFilters();
 
   useEffect(() => {
     const fetchKPIs = async () => {
       try {
-        const response = await api.get("/analytics/kpis");
-
-        setKpis(response.data?.data ?? null);
+        setKpis(await analyticsService.getKPIs(filters));
       } catch (err) {
         console.error("Failed to fetch KPIs:", err);
         setError("Unable to load dashboard metrics.");
@@ -54,7 +44,7 @@ const Dashboard = () => {
     };
 
     fetchKPIs();
-  }, []);
+  }, [filters]);
 
   const totalOrders = Number(kpis?.TotalOrders ?? 0);
   const totalCustomers = Number(kpis?.TotalCustomers ?? 0);
@@ -93,32 +83,13 @@ const Dashboard = () => {
 
           <div className="topbar-actions">
 
-            <button
-              type="button"
-              className="theme-toggle"
-              onClick={() =>
-                setDarkMode((value) => !value)
-              }
-              aria-label="Toggle theme"
-            >
-              {darkMode ? (
-                <Sun size={17} />
-              ) : (
-                <Moon size={17} />
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="period-selector"
-            >
-              <span>All Time</span>
-              <ChevronDown size={15} />
-            </button>
+            <AccountControls darkMode={darkMode} onToggleTheme={toggleTheme} />
 
           </div>
 
         </header>
+
+        <FilterBar />
 
         {/* WELCOME */}
 
@@ -276,6 +247,7 @@ const Dashboard = () => {
                 Monthly
                 <ChevronDown size={14} />
               </button>
+              <ExportMenu dataset="sales" reportType="sales-summary" />
 
             </div>
 

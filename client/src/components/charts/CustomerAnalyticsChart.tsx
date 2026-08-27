@@ -8,6 +8,8 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { serializeFilters } from "../../services/analyticsService";
+import { useFilters } from "../../context/FilterContext";
 
 interface CustomerData {
   CustomerSegment?: string;
@@ -35,6 +37,7 @@ const SEGMENT_COLORS = [
 ];
 
 const CustomerAnalyticsChart = () => {
+  const { filters } = useFilters();
   const [data, setData] = useState<SegmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,7 +50,7 @@ const CustomerAnalyticsChart = () => {
     const fetchCustomers = async () => {
       try {
         const response = await api.get(
-          "/analytics/customers"
+          `/analytics/customers?${serializeFilters(filters)}`
         );
 
         const customers: CustomerData[] =
@@ -107,7 +110,7 @@ const CustomerAnalyticsChart = () => {
     };
 
     fetchCustomers();
-  }, []);
+  }, [filters]);
 
   /* =====================================================
      TOTAL

@@ -1,11 +1,24 @@
 import api from "./api";
 import type { Customer, CustomerInput } from "../types/customer";
 
+export interface CustomerListResult {
+  data: Customer[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 export const customerService = {
   async getAll(): Promise<Customer[]> {
     const response = await api.get("/customers");
 
     return response.data.data ?? [];
+  },
+
+  async getPage(page: number, search = ""): Promise<CustomerListResult> {
+    const response = await api.get("/customers", { params: { page, limit: 25, search } });
+    return {
+      data: response.data.data ?? [],
+      pagination: response.data.pagination ?? { page, limit: 25, total: 0, totalPages: 0 },
+    };
   },
 
   async getOne(customerKey: number): Promise<Customer> {

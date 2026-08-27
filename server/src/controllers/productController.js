@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
 
 // ==========================================
 // GET ALL PRODUCTS
@@ -6,6 +7,11 @@ const pool = require("../config/db");
 
 const getProducts = async (req, res) => {
   try {
+    const { page, limit, search } = parsePagination(req.query);
+    const like = `%${search}%`;
+    const searchClause = search ? "WHERE p.ProductID LIKE ? OR p.ProductName LIKE ? OR p.Category LIKE ? OR p.Brand LIKE ?" : "";
+    const searchParams = search ? [like, like, like, like] : [];
+    const [[countRow]] = await pool.query(`SELECT COUNT(*) AS total FROM dim_product p ${searchClause}`, searchParams);
     const [rows] = await pool.query(`
       SELECT
         p.ProductKey,
@@ -28,6 +34,7 @@ const getProducts = async (req, res) => {
         ) AS MarginPercent
       FROM dim_product p
       LEFT JOIN fact_order_items oi ON p.ProductKey = oi.ProductKey
+      ${searchClause}
       GROUP BY
         p.ProductKey,
         p.ProductID,
@@ -39,12 +46,14 @@ const getProducts = async (req, res) => {
         p.UnitCost,
         p.UnitPrice
       ORDER BY p.ProductKey DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, [...searchParams, limit, (page - 1) * limit]);
 
     res.json({
       status: "success",
-      count: rows.length,
+      count: Number(countRow.total),
       data: rows,
+      pagination: paginationMeta(page, limit, Number(countRow.total)),
     });
   } catch (error) {
     console.error(

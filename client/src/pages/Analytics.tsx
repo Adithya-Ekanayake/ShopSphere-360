@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   BarChart3,
   DollarSign,
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 import analyticsService from "../services/analyticsService";
+import { useFilters } from "../context/FilterContext";
+import FilterBar from "../components/FilterBar";
 
 import type {
   KPIData,
@@ -24,18 +26,22 @@ import type {
 import "../styles/dashboard.css";
 import "../styles/admin.css";
 
-const Analytics = () => {
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
+const AnalyticsContent = () => {
+  const [darkMode] = useState<boolean>(() => {
     return localStorage.getItem("shopsphere-theme") === "dark";
   });
 
+  const { filters } = useFilters();
+
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
+
     localStorage.setItem(
       "shopsphere-theme",
       darkMode ? "dark" : "light"
     );
   }, [darkMode]);
+
   const [kpis, setKpis] = useState<KPIData | null>(null);
 
   const [monthlySales, setMonthlySales] = useState<
@@ -62,135 +68,131 @@ const Analytics = () => {
 
   const [error, setError] = useState("");
 
-  // ==========================================================
-  // LOAD ANALYTICS DATA
-  // ==========================================================
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [
+        kpiData,
+        monthlyData,
+        productData,
+        customerData,
+        returnData,
+        supportData,
+      ] = await Promise.all([
+        analyticsService.getKPIs(filters),
+        analyticsService.getMonthlySales(filters),
+        analyticsService.getTopProducts(filters),
+        analyticsService.getCustomers(filters),
+        analyticsService.getReturns(filters),
+        analyticsService.getSupport(filters),
+      ]);
+
+      // ------------------------------------------------------
+      // KPI DATA
+      // ------------------------------------------------------
+
+      setKpis(kpiData);
+
+      // ------------------------------------------------------
+      // MONTHLY SALES
+      // ------------------------------------------------------
+
+      setMonthlySales(monthlyData);
+
+      // ------------------------------------------------------
+      // PRODUCTS
+      // ------------------------------------------------------
+
+      setProducts(productData);
+
+      // ------------------------------------------------------
+      // CUSTOMERS
+      // ------------------------------------------------------
+      /*
+        CustomerID is the actual unique identifier
+        in the analytics data (C0001, C0002, etc.).
+
+        The backend may return duplicate customer
+        records, so we remove duplicates here.
+
+        CustomerKey is used only as a fallback.
+      */
+
+      const customerMap = new Map<string, CustomerAnalyticsData>();
+
+      customerData.forEach((customer) => {
+        const customerName =
+          (customer as any).CustomerName ||
+          customer.FullName ||
+          `${(customer as any).FirstName ?? ""} ${
+            (customer as any).LastName ?? ""
+          }`.trim() ||
+          customer.CustomerID ||
+          "Unknown Customer";
+
+        const uniqueKey = customerName.toUpperCase();
+
+        if (customerMap.has(uniqueKey)) {
+          const existing = customerMap.get(uniqueKey)!;
+
+          const newOrders = Number(existing.TotalOrders || 0) + Number(customer.TotalOrders || 0);
+          const newRevenue = Number(existing.TotalRevenue || 0) + Number(customer.TotalRevenue || 0);
+          const newProfit = Number(existing.TotalProfit || 0) + Number(customer.TotalProfit || 0);
+
+          existing.TotalOrders = newOrders;
+          existing.TotalRevenue = newRevenue;
+          existing.TotalProfit = newProfit;
+          existing.AverageOrderValue = newOrders > 0 ? newRevenue / newOrders : 0;
+        } else {
+          customerMap.set(uniqueKey, { ...customer, FullName: customerName });
+        }
+      });
+
+      const uniqueCustomers = Array.from(customerMap.values())
+        .sort((a, b) => Number(b.TotalRevenue || 0) - Number(a.TotalRevenue || 0));
+
+      console.log(
+        "Customer records returned:",
+        customerData.length
+      );
+
+      console.log(
+        "Unique customer records:",
+        uniqueCustomers.length
+      );
+
+      setCustomers(uniqueCustomers);
+
+      // ------------------------------------------------------
+      // RETURNS
+      // ------------------------------------------------------
+
+      setReturns(returnData);
+
+      // ------------------------------------------------------
+      // SUPPORT
+      // ------------------------------------------------------
+
+      setSupport(supportData);
+    } catch (err) {
+      console.error(
+        "Failed to load analytics:",
+        err
+      );
+
+      setError(
+        "Unable to load analytics information."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
 
   useEffect(() => {
-    const loadAnalytics = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const [
-          kpiData,
-          monthlyData,
-          productData,
-          customerData,
-          returnData,
-          supportData,
-        ] = await Promise.all([
-          analyticsService.getKPIs(),
-          analyticsService.getMonthlySales(),
-          analyticsService.getTopProducts(),
-          analyticsService.getCustomers(),
-          analyticsService.getReturns(),
-          analyticsService.getSupport(),
-        ]);
-
-        // ------------------------------------------------------
-        // KPI DATA
-        // ------------------------------------------------------
-
-        setKpis(kpiData);
-
-        // ------------------------------------------------------
-        // MONTHLY SALES
-        // ------------------------------------------------------
-
-        setMonthlySales(monthlyData);
-
-        // ------------------------------------------------------
-        // PRODUCTS
-        // ------------------------------------------------------
-
-        setProducts(productData);
-
-        // ------------------------------------------------------
-        // CUSTOMERS
-        // ------------------------------------------------------
-        /*
-          CustomerID is the actual unique identifier
-          in the analytics data (C0001, C0002, etc.).
-
-          The backend may return duplicate customer
-          records, so we remove duplicates here.
-
-          CustomerKey is used only as a fallback.
-        */
-
-        const customerMap = new Map<string, CustomerAnalyticsData>();
-
-        customerData.forEach((customer) => {
-          const customerName =
-            (customer as any).CustomerName ||
-            customer.FullName ||
-            `${(customer as any).FirstName ?? ""} ${
-              (customer as any).LastName ?? ""
-            }`.trim() ||
-            customer.CustomerID ||
-            "Unknown Customer";
-
-          const uniqueKey = customerName.toUpperCase();
-
-          if (customerMap.has(uniqueKey)) {
-            const existing = customerMap.get(uniqueKey)!;
-            
-            const newOrders = Number(existing.TotalOrders || 0) + Number(customer.TotalOrders || 0);
-            const newRevenue = Number(existing.TotalRevenue || 0) + Number(customer.TotalRevenue || 0);
-            const newProfit = Number(existing.TotalProfit || 0) + Number(customer.TotalProfit || 0);
-            
-            existing.TotalOrders = newOrders;
-            existing.TotalRevenue = newRevenue;
-            existing.TotalProfit = newProfit;
-            existing.AverageOrderValue = newOrders > 0 ? newRevenue / newOrders : 0;
-          } else {
-            customerMap.set(uniqueKey, { ...customer, FullName: customerName });
-          }
-        });
-
-        const uniqueCustomers = Array.from(customerMap.values())
-          .sort((a, b) => Number(b.TotalRevenue || 0) - Number(a.TotalRevenue || 0));
-
-        console.log(
-          "Customer records returned:",
-          customerData.length
-        );
-
-        console.log(
-          "Unique customer records:",
-          uniqueCustomers.length
-        );
-
-        setCustomers(uniqueCustomers);
-
-        // ------------------------------------------------------
-        // RETURNS
-        // ------------------------------------------------------
-
-        setReturns(returnData);
-
-        // ------------------------------------------------------
-        // SUPPORT
-        // ------------------------------------------------------
-
-        setSupport(supportData);
-      } catch (err) {
-        console.error(
-          "Failed to load analytics:",
-          err
-        );
-
-        setError(
-          "Unable to load analytics information."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadAnalytics();
-  }, []);
+  }, [loadAnalytics]);
 
   // ==========================================================
   // FORMATTERS
@@ -280,7 +282,7 @@ const Analytics = () => {
   // ==========================================================
 
   const totalTickets = support.reduce(
-    (total, item) =>
+    (total) =>
       total +
       1,
     0
@@ -299,11 +301,11 @@ const Analytics = () => {
 
   return (
     <>
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
 
-      <div className="admin-header">
+        <div className="admin-header">
         <div>
           <p className="panel-kicker">
             ANALYTICS
@@ -327,6 +329,12 @@ const Analytics = () => {
           </p>
         </div>
       </div>
+
+      {/* =====================================================
+          FILTER BAR
+      ===================================================== */}
+
+      <FilterBar />
 
       {/* =====================================================
           ERROR
@@ -1504,7 +1512,7 @@ const Analytics = () => {
       </section>
 
     </>
-  );
+);
 };
 
-export default Analytics;
+export default AnalyticsContent;

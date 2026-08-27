@@ -10,6 +10,8 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { serializeFilters } from "../../services/analyticsService";
+import { useFilters } from "../../context/FilterContext";
 
 interface MarketingData {
   ChannelName?: string;
@@ -66,6 +68,7 @@ const CustomTooltip = ({
 };
 
 const MarketingAnalyticsChart = () => {
+  const { filters } = useFilters();
   const [data, setData] = useState<ChannelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -74,7 +77,7 @@ const MarketingAnalyticsChart = () => {
     const fetchMarketingAnalytics = async () => {
       try {
         const response = await api.get(
-          "/analytics/marketing"
+          `/analytics/marketing?${serializeFilters(filters)}`
         );
 
         const marketingData: MarketingData[] =
@@ -159,7 +162,7 @@ const MarketingAnalyticsChart = () => {
     };
 
     fetchMarketingAnalytics();
-  }, []);
+  }, [filters]);
 
   if (loading) {
     return (

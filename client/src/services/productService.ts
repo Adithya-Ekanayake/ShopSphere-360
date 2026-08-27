@@ -1,6 +1,11 @@
 import api from "./api";
 import type { Product, ProductInput } from "../types/product";
 
+export interface ProductListResult {
+  data: Product[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 export const productService = {
   // ==========================================
   // GET ALL PRODUCTS
@@ -10,6 +15,14 @@ export const productService = {
     const response = await api.get("/products");
 
     return response.data.data ?? [];
+  },
+
+  async getPage(page: number, search = ""): Promise<ProductListResult> {
+    const response = await api.get("/products", { params: { page, limit: 25, search } });
+    return {
+      data: response.data.data ?? [],
+      pagination: response.data.pagination ?? { page, limit: 25, total: 0, totalPages: 0 },
+    };
   },
 
   // ==========================================

@@ -20,7 +20,7 @@ import "../styles/dashboard.css";
 import "../styles/sales.css";
 
 const Sales = () => {
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
+  const [darkMode] = useState<boolean>(() => {
     return localStorage.getItem("shopsphere-theme") === "dark";
   });
 

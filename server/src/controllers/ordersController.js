@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
 
 // ==========================================
 // GET ORDER KPIs
@@ -20,7 +21,7 @@ const getOrderKPIs = async (req, res) => {
 
         SUM(
           CASE
-            WHEN OrderStatus = 'Pending'
+            WHEN OrderStatus IN ('Processing', 'Shipped')
             THEN 1
             ELSE 0
           END
@@ -63,6 +64,16 @@ const getOrderKPIs = async (req, res) => {
 
 const getOrders = async (req, res) => {
   try {
+    const { page, limit, search } = parsePagination(req.query);
+    const like = `%${search}%`;
+    const searchClause = search ? "WHERE fo.OrderID LIKE ? OR c.CustomerID LIKE ? OR c.FirstName LIKE ? OR c.LastName LIKE ? OR fo.OrderStatus LIKE ?" : "";
+    const searchParams = search ? [like, like, like, like, like] : [];
+    const [[countRow]] = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM fact_orders fo
+      INNER JOIN dim_customer c ON fo.CustomerKey = c.CustomerKey
+      ${searchClause}
+    `, searchParams);
     const [rows] = await pool.query(`
       SELECT
         fo.OrderKey,
@@ -107,14 +118,17 @@ const getOrders = async (req, res) => {
       INNER JOIN dim_location dl
         ON fo.LocationKey = dl.LocationKey
 
+      ${searchClause}
       ORDER BY
         fo.OrderKey DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, [...searchParams, limit, (page - 1) * limit]);
 
     res.json({
       status: "success",
-      count: rows.length,
+      count: Number(countRow.total),
       data: rows,
+      pagination: paginationMeta(page, limit, Number(countRow.total)),
     });
   } catch (error) {
     console.error("Get orders error:", error.message);
