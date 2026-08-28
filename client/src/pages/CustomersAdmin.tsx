@@ -72,9 +72,11 @@ const CustomersAdmin = () => {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedCustomers, setHasLoadedCustomers] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalCustomers, setTotalCustomers] = useState(0);
 
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("");
@@ -92,12 +94,14 @@ const CustomersAdmin = () => {
 
   const fetchCustomers = async () => {
     try {
-      setLoading(true);
+      setLoading(!hasLoadedCustomers);
+      setHasLoadedCustomers(true);
       setError("");
 
       const result = await customerService.getPage(page, search);
       setCustomers(result.data);
       setTotalPages(result.pagination.totalPages);
+      setTotalCustomers(result.pagination.total);
     } catch (err) {
       console.error("Failed to fetch customers:", err);
       setError("Failed to load customers. Please try again.");
@@ -205,6 +209,7 @@ const CustomersAdmin = () => {
 
       const data = await customerService.getAll();
       setCustomers(data);
+      setTotalCustomers(data.length);
 
       setShowForm(false);
       setEditingKey(null);
@@ -391,8 +396,8 @@ const CustomersAdmin = () => {
           </div>
           <div className="kpi-content">
             <span>Total Customers</span>
-            <strong>{customers.length.toLocaleString()}</strong>
-            <small>Active in database</small>
+            <strong>{totalCustomers.toLocaleString()}</strong>
+            <small>Total in database</small>
           </div>
         </div>
 

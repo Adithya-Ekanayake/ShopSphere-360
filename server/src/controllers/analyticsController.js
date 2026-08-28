@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { buildFilterClause, getFilterOptions: getFilterOptionsUtil, buildMonthlySalesQuery } = require("../utils/filterHelper");
+const RETENTION_WINDOW_DAYS = 180; // Standard retention window for lower-frequency retail categories.
 
 const salesFilters = {
   relevant: ["startDate", "endDate", "productKey", "segment", "channelKey", "locationKey", "status"],
@@ -394,11 +395,63 @@ const getCustomerRetention = async (req, res) => {
       segmentColumn: "v.CustomerSegment",
       relevant: ["startDate", "endDate", "segment"],
     });
-    const [rows] = await pool.query(`
-      SELECT v.* FROM vw_customer_retention v
+    const retentionQuery = `
+      WITH ordered_orders AS (
+        SELECT
+          o.CustomerKey,
+          c.CustomerSegment,
+          o.OrderKey,
+          d.FullDate AS OrderDate,
+          LAG(d.FullDate) OVER (
+            PARTITION BY o.CustomerKey
+            ORDER BY d.FullDate, o.OrderKey
+          ) AS PreviousOrderDate
+        FROM fact_orders o
+        JOIN dim_date d ON o.DateKey = d.DateKey
+        JOIN dim_customer c ON o.CustomerKey = c.CustomerKey
+        WHERE o.OrderStatus NOT IN ('Cancelled', 'Returned')
+      ),
+      customer_month AS (
+        SELECT
+          CustomerKey,
+          CustomerSegment,
+          DATE_FORMAT(OrderDate, '%Y-%m-01') AS PeriodStart,
+          COUNT(DISTINCT OrderKey) AS OrdersInPeriod,
+          MAX(CASE
+            WHEN PreviousOrderDate IS NOT NULL
+             AND DATEDIFF(OrderDate, PreviousOrderDate) BETWEEN 1 AND ${RETENTION_WINDOW_DAYS}
+            THEN 1 ELSE 0
+          END) AS HasRecentRepeat
+        FROM ordered_orders
+        GROUP BY CustomerKey, CustomerSegment, DATE_FORMAT(OrderDate, '%Y-%m-01')
+      ),
+      period_totals AS (
+        SELECT
+          PeriodStart,
+          CustomerSegment,
+          COUNT(*) AS TotalCustomers,
+          SUM(CASE WHEN OrdersInPeriod > 1 THEN 1 ELSE 0 END) AS RepeatCustomers,
+          SUM(HasRecentRepeat) AS RetainedCustomers
+        FROM customer_month
+        GROUP BY PeriodStart, CustomerSegment
+      )
+      SELECT
+        v.PeriodStart,
+        v.CustomerSegment,
+        YEAR(v.PeriodStart) AS Year,
+        MONTH(v.PeriodStart) AS Month,
+        DATE_FORMAT(v.PeriodStart, '%b %Y') AS PeriodLabel,
+        v.TotalCustomers,
+        v.RepeatCustomers,
+        ROUND(v.RepeatCustomers / NULLIF(v.TotalCustomers, 0) * 100, 2) AS RepeatCustomerRatePercent,
+        v.RetainedCustomers,
+        LAG(v.TotalCustomers) OVER (PARTITION BY v.CustomerSegment ORDER BY v.PeriodStart) AS PreviousPeriodCustomers,
+        ROUND(v.RetainedCustomers / NULLIF(v.TotalCustomers, 0) * 100, 2) AS RetentionRatePercent
+      FROM period_totals v
       ${whereClause}
       ORDER BY v.PeriodStart, v.CustomerSegment
-    `, params);
+    `;
+    const [rows] = await pool.query(retentionQuery, params);
     res.json({ status: "success", count: rows.length, data: rows });
   } catch (error) {
     if (handleFilterError(error, res)) return;

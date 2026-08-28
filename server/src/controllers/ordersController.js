@@ -86,6 +86,8 @@ const getOrders = async (req, res) => {
         ) AS CustomerName,
 
         c.CustomerID,
+        c.City AS CustomerCity,
+        c.Country AS CustomerCountry,
 
         dd.FullDate AS OrderDate,
 

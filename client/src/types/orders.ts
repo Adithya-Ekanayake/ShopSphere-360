@@ -11,6 +11,8 @@ export interface Order {
 
   CustomerName: string;
   CustomerID: string;
+  CustomerCity?: string | null;
+  CustomerCountry?: string | null;
 
   OrderDate: string;
 

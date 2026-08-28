@@ -2064,6 +2064,21 @@ body.dark-mode
   max-width: 190px;
 }
 
+.account-identity-trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.account-identity-trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
 .account-avatar {
   width: 30px;
   height: 30px;
@@ -2092,7 +2107,7 @@ body.dark-mode
 
 .account-details strong { color: var(--text); font-size: 12px; }
 .account-details span { font-size: 10px; font-weight: 700; }
-.account-status { display: flex; align-items: center; gap: 5px; margin-top: 3px; color: var(--text-secondary); font-size: 10px; }
+.account-status { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: var(--text-secondary); font-size: 10px; }
 .account-sign-out { color: #ef4444; }
 
 @media (max-width: 700px) {

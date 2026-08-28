@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -16,6 +17,7 @@ const ROLE_COLORS: Record<string, string> = {
 const AccountControls = ({ darkMode, onToggleTheme }: AccountControlsProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showSignOut, setShowSignOut] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -26,7 +28,23 @@ const AccountControls = ({ darkMode, onToggleTheme }: AccountControlsProps) => {
 
   return (
     <div className="account-controls" aria-label="Account controls">
-      <div className="account-identity">
+      <button
+        type="button"
+        className="theme-toggle"
+        onClick={onToggleTheme}
+        title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+        aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
+
+      <button
+        type="button"
+        className="account-identity account-identity-trigger"
+        onClick={() => setShowSignOut((visible) => !visible)}
+        aria-expanded={showSignOut}
+        aria-label={`${user.Role} account menu`}
+      >
         <div
           className="account-avatar"
           style={{ background: ROLE_COLORS[user.Role] ?? "var(--primary)" }}
@@ -43,27 +61,19 @@ const AccountControls = ({ darkMode, onToggleTheme }: AccountControlsProps) => {
             <span>Online</span>
           </span>
         </div>
-      </div>
-
-      <button
-        type="button"
-        className="theme-toggle"
-        onClick={onToggleTheme}
-        title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-        aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-      >
-        {darkMode ? <Sun size={16} /> : <Moon size={16} />}
       </button>
 
-      <button
-        type="button"
-        className="theme-toggle account-sign-out"
-        onClick={handleLogout}
-        title="Sign out"
-        aria-label="Sign out"
-      >
-        <LogOut size={16} />
-      </button>
+      {showSignOut ? (
+        <button
+          type="button"
+          className="theme-toggle account-sign-out"
+          onClick={handleLogout}
+          title="Sign out"
+          aria-label="Sign out"
+        >
+          <LogOut size={16} />
+        </button>
+      ) : null}
     </div>
   );
 };

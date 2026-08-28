@@ -531,7 +531,7 @@ const Orders = () => {
                   </th>
 
                   <th>
-                    Location
+                    Order Location
                   </th>
 
                   <th>
@@ -618,6 +618,18 @@ const Orders = () => {
                               {
                                 order.CustomerID
                               }
+                              {(order.CustomerCity || order.CustomerCountry) && (
+                                <span
+                                  style={{
+                                    display: "block",
+                                    marginTop: "3px",
+                                    color: "var(--text-secondary)",
+                                  }}
+                                >
+                                  Profile: {order.CustomerCity || order.CustomerCountry}
+                                  {order.CustomerCity && order.CustomerCountry ? `, ${order.CustomerCountry}` : ""}
+                                </span>
+                              )}
                             </small>
                           </div>
 
@@ -639,9 +651,7 @@ const Orders = () => {
 
                           <div>
                             <span>
-                              {
-                                order.City
-                              }
+                              {order.City}
                             </span>
 
                             {order.Country && (

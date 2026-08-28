@@ -89,8 +89,6 @@ const Dashboard = () => {
 
         </header>
 
-        <FilterBar />
-
         {/* WELCOME */}
 
         <section className="welcome">
@@ -112,6 +110,8 @@ const Dashboard = () => {
           </div>
 
         </section>
+
+        <FilterBar />
 
         {error && (
           <div className="dashboard-error">

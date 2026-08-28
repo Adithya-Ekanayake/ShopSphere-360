@@ -19,9 +19,27 @@ const ordersService = {
   },
 
   async getOrders(): Promise<Order[]> {
-    const response = await api.get("/orders");
+    const limit = 100;
+    const firstResponse = await api.get("/orders", {
+      params: { page: 1, limit },
+    });
+    const firstPage = firstResponse.data?.data ?? [];
+    const totalPages = firstResponse.data?.pagination?.totalPages ?? 1;
 
-    return response.data?.data ?? [];
+    if (totalPages <= 1) return firstPage;
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        api.get("/orders", {
+          params: { page: index + 2, limit },
+        })
+      )
+    );
+
+    return [
+      ...firstPage,
+      ...remainingPages.flatMap((response) => response.data?.data ?? []),
+    ];
   },
 
   async getOrderById(
