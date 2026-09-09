@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Search,
   Package,
   CheckCircle2,
   Clock3,
@@ -48,21 +49,43 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(
     []
   );
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const filteredTransactions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return transactions.filter((transaction) => {
+      const matchesSearch =
+        !query ||
+        transaction.OrderID?.toLowerCase().includes(query) ||
+        transaction.PaymentMethod?.toLowerCase().includes(query) ||
+        transaction.PaymentStatus?.toLowerCase().includes(query) ||
+        String(transaction.PaymentKey).includes(query);
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        transaction.PaymentStatus?.toLowerCase() ===
+          statusFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [transactions, search, statusFilter]);
+
   const summary = useMemo(() => {
-    const total = transactions.length;
-    const completed = transactions.filter(
+    const total = filteredTransactions.length;
+    const completed = filteredTransactions.filter(
       (transaction) =>
         transaction.PaymentStatus?.toLowerCase() === "completed"
     ).length;
-    const pending = transactions.filter(
+    const pending = filteredTransactions.filter(
       (transaction) =>
         transaction.PaymentStatus?.toLowerCase() === "pending"
     ).length;
-    const cancelled = transactions.filter(
+    const cancelled = filteredTransactions.filter(
       (transaction) =>
         ["cancelled", "failed"].includes(
           transaction.PaymentStatus?.toLowerCase()
@@ -75,7 +98,7 @@ const Transactions = () => {
       pending,
       cancelled,
     };
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   /* =========================================================
      LOAD TRANSACTIONS
@@ -158,7 +181,7 @@ const Transactions = () => {
 
         <div>
           <p className="panel-kicker">
-            TRANSACTIONS
+            SALES MANAGEMENT
           </p>
 
           <h1>
@@ -172,7 +195,7 @@ const Transactions = () => {
               fontSize: "14px",
             }}
           >
-            View and monitor payment transactions.
+            View and manage payment transactions.
           </p>
         </div>
 
@@ -279,6 +302,71 @@ const Transactions = () => {
 
         </div>
 
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            padding: "0 24px 20px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              flex: "1 1 300px",
+            }}
+          >
+            <Search
+              size={17}
+              style={{
+                position: "absolute",
+                left: "13px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--text-secondary)",
+              }}
+            />
+
+            <input
+              type="text"
+              placeholder="Search orders, methods or status..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%",
+                height: "42px",
+                padding: "0 14px 0 40px",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                background: "var(--surface)",
+                color: "var(--text)",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              height: "42px",
+              padding: "0 35px 0 13px",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              background: "var(--surface)",
+              color: "var(--text)",
+              cursor: "pointer",
+              outline: "none",
+            }}
+          >
+            <option value="All">All Statuses</option>
+            <option value="Completed">Completed</option>
+            <option value="Pending">Pending</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Failed">Failed</option>
+          </select>
+        </div>
+
         <div className="panel-body">
 
           {/* =================================================
@@ -293,7 +381,7 @@ const Transactions = () => {
               </p>
             </div>
 
-          ) : transactions.length === 0 ? (
+          ) : filteredTransactions.length === 0 ? (
 
             /* ===============================================
                EMPTY STATE
@@ -351,7 +439,7 @@ const Transactions = () => {
 
                 <tbody>
 
-                  {transactions.map(
+                  {filteredTransactions.map(
                     (transaction) => (
 
                       <tr
