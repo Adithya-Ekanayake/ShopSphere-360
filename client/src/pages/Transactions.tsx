@@ -1,5 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Package,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+} from "lucide-react";
+
 import transactionsService from "../services/transactionsService";
+
+import "../styles/dashboard.css";
+import "../styles/admin.css";
 
 interface Transaction {
   PaymentKey: number;
@@ -41,6 +51,31 @@ const Transactions = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const summary = useMemo(() => {
+    const total = transactions.length;
+    const completed = transactions.filter(
+      (transaction) =>
+        transaction.PaymentStatus?.toLowerCase() === "completed"
+    ).length;
+    const pending = transactions.filter(
+      (transaction) =>
+        transaction.PaymentStatus?.toLowerCase() === "pending"
+    ).length;
+    const cancelled = transactions.filter(
+      (transaction) =>
+        ["cancelled", "failed"].includes(
+          transaction.PaymentStatus?.toLowerCase()
+        )
+    ).length;
+
+    return {
+      total,
+      completed,
+      pending,
+      cancelled,
+    };
+  }, [transactions]);
 
   /* =========================================================
      LOAD TRANSACTIONS
@@ -152,6 +187,68 @@ const Transactions = () => {
           {error}
         </div>
       )}
+
+      {/* =====================================================
+          KPI CARDS
+          ===================================================== */}
+
+      <section className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
+            <Package size={20} />
+          </div>
+
+          <div className="kpi-content">
+            <span>Total Transactions</span>
+            <strong>
+              {summary.total.toLocaleString()}
+            </strong>
+            <small>All payment records</small>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
+            <CheckCircle2 size={20} />
+          </div>
+
+          <div className="kpi-content">
+            <span>Completed</span>
+            <strong>
+              {summary.completed.toLocaleString()}
+            </strong>
+            <small>Successful payments</small>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
+            <Clock3 size={20} />
+          </div>
+
+          <div className="kpi-content">
+            <span>Pending</span>
+            <strong>
+              {summary.pending.toLocaleString()}
+            </strong>
+            <small>Awaiting completion</small>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon blue">
+            <XCircle size={20} />
+          </div>
+
+          <div className="kpi-content">
+            <span>Cancelled</span>
+            <strong>
+              {summary.cancelled.toLocaleString()}
+            </strong>
+            <small>Failed or cancelled</small>
+          </div>
+        </div>
+      </section>
 
       {/* =====================================================
           TRANSACTIONS TABLE
