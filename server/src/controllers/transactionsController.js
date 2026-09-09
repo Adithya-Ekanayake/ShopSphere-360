@@ -1,11 +1,60 @@
 const pool = require("../config/db");
 
+const ensurePaymentSeedData = async () => {
+  const [rows] = await pool.query(
+    "SELECT COUNT(*) AS total FROM fact_payments"
+  );
+
+  if (Number(rows[0].total) > 0) {
+    return;
+  }
+
+  await pool.query(`
+    INSERT INTO fact_payments (
+      OrderKey,
+      DateKey,
+      PaymentMethod,
+      PaymentAmount,
+      PaymentStatus,
+      TransactionFee
+    )
+    SELECT
+      fo.OrderKey,
+      fo.DateKey,
+      CASE MOD(fo.OrderKey, 4)
+        WHEN 0 THEN 'Credit Card'
+        WHEN 1 THEN 'Debit Card'
+        WHEN 2 THEN 'Digital Wallet'
+        ELSE 'Bank Transfer'
+      END AS PaymentMethod,
+      ROUND(
+        fo.OrderTotal * CASE MOD(fo.OrderKey, 5)
+          WHEN 0 THEN 0.92
+          WHEN 1 THEN 0.96
+          WHEN 2 THEN 0.98
+          ELSE 1
+        END,
+        2
+      ) AS PaymentAmount,
+      CASE
+        WHEN fo.PaymentStatus = 'Paid' THEN 'Completed'
+        WHEN fo.PaymentStatus = 'Pending' THEN 'Pending'
+        ELSE 'Failed'
+      END AS PaymentStatus,
+      ROUND(fo.OrderTotal * 0.0125, 2) AS TransactionFee
+    FROM fact_orders fo
+    ORDER BY fo.OrderKey
+  `);
+};
+
 // ==========================================
 // TRANSACTION KPIs
 // ==========================================
 
 const getTransactionKPIs = async (req, res) => {
   try {
+    await ensurePaymentSeedData();
+
     const [rows] = await pool.query(`
       SELECT
         COUNT(*) AS TotalTransactions,
@@ -68,6 +117,8 @@ const getTransactionKPIs = async (req, res) => {
 
 const getTransactions = async (req, res) => {
   try {
+    await ensurePaymentSeedData();
+
     const [rows] = await pool.query(`
       SELECT
         fp.PaymentKey,
@@ -130,6 +181,8 @@ const getTransactionsByMethod = async (
   res
 ) => {
   try {
+    await ensurePaymentSeedData();
+
     const [rows] = await pool.query(`
       SELECT
         PaymentMethod,
